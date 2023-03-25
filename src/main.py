@@ -21,10 +21,10 @@ K = matrix([1.0646, 0.8914]) # K Matrix (1x2)
 x0 = matrix([0.785398, 0.0]) # Target State (1x2)
 
 # connect imu
-#i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
-#imu = BNO055(i2c) # TODO : Error checking and resolution if imu doesnt connect
-#imu_calibrated = False
-#print("[log] IMU Connected!")
+i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
+imu = BNO055(i2c) # TODO : Error checking and resolution if imu doesnt connect
+imu_calibrated = False
+print("[log] IMU Connected!")
 
 # create web server
 server = web_server("MAE491 Interface", "123456789")
@@ -103,21 +103,21 @@ try:
                     log_file.write(str(reading) + "\n")
                     
                     # get imu data
-                    #if not imu_calibrated:
-                    #    imu_calibrated = imu.calibrated()
-                    #    angle = imu.euler()[1]
-                    #    angular_vel = imu.gyro()[1]
-                    #    theta = -deg_to_rad(angle)
-                    #    theta_dot = -deg_to_rad(angular_vel)
+                    if not imu_calibrated:
+                        imu_calibrated = imu.calibrated()
+                        angle = imu.euler()[1]
+                        angular_vel = imu.gyro()[1]
+                        theta = -deg_to_rad(angle)
+                        theta_dot = -deg_to_rad(angular_vel)
                     
                     # controller calculation
-                    #x = matrix([[theta, theta_dot], [0.0, 0.0]]) # state (2x2)
-                    #cmd = x0 - K*x 
-                    #df = 0.1715
-                    #F_avg = 2.5
-                    #T = cmd[0][0]
-                    #F = matrix([[0.5, 0.5, F_avg], [df, -df, T]])
-                    #results = F.rref() # more epic calculations
+                    x = matrix([[theta, theta_dot], [0.0, 0.0]]) # state (2x2)
+                    cmd = x0 - K*x 
+                    df = 0.1715
+                    F_avg = 2.5
+                    T = cmd[0][0]
+                    F = matrix([[0.5, 0.5, F_avg], [df, -df, T]])
+                    results = F.rref() # more epic calculations
                     
                     # output results
                     #print("[log] left = " + str(results[0][2]))
