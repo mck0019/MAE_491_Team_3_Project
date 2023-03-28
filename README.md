@@ -13,6 +13,7 @@ It is recommended to use the [Thonny IDE](https://thonny.org/) to upload  the fo
 * ```bno055_base.py```
 * ```math_util.py```
 * ```web_util.py```
+* ```motor_util.py```
 * ```main.py```
 * ```index.html```
 
