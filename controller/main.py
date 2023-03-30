@@ -26,7 +26,6 @@ pin_LED = Pin("LED")
 g_desired_angle = 0
 g_system_ready = False
 g_is_running = False
-g_elapsed_time = 0.0
 g_log_filename = "log.csv"
 g_current_task = "Idle"
 g_start_time = 0
@@ -64,7 +63,6 @@ try:
         
         if (conn):
             if (data):
-                #print(data)
                 
                 # parse data
                 p = parser(data[0:64])
@@ -126,8 +124,8 @@ try:
         if (g_is_running):
             
             # read pressure tranducers
-            pressure_read_l = (pin_pressure_transducer_l.read_u16() * 3.3 / 65536.0)
-            pressure_read_r = (pin_pressure_transducer_l.read_u16() * 3.3 / 65536.0)
+            pressure_in_l = (pin_pressure_transducer_l.read_u16() * 3.3 / 65536.0) # in Volts
+            pressure_in_r = (pin_pressure_transducer_r.read_u16() * 3.3 / 65536.0) # in Volts
             
             # read imu data
             if not imu_calibrated:
@@ -143,8 +141,11 @@ try:
             T = cmd[0][0]
             F = matrix([[0.5, 0.5, F_avg], [df, -df, T]])
             results = F.rref()
-            pressure_left = (max(1.246, min(4.3503, results[0][2])) * 22.5537 + 11.5845) - 14.7
-            pressure_left = (max(1.246, min(4.3503, results[1][2])) 22.5537 + 11.5845) - 14.7
+            pressure_needed_l = (max(1.246, min(4.3503, results[0][2])) * 22.5537 + 11.5845) - 14.7
+            pressure_needed_r = (max(1.246, min(4.3503, results[1][2])) 22.5537 + 11.5845) - 14.7
+            
+            # TODO : calculate what angle is needs for the
+            # required pressure using pressure_in
             
             # set angle
             motor_l.set_step(SET_ANGLE_HERE)
@@ -159,8 +160,8 @@ try:
             g_time_step = time.ticks_diff(end, start)
             
             # output results
-            log.write('{:9.2f}'.format(time_step) + ", " + '{:11.5f}'.format(angle) + ", " + '{:19.5f}'.format(angular_vel) + ", ")
-            log.write('{:11.3f}'.format(pressure_left) + ", " + '{:12.3f}'.format(pressure_left) + "\n")
+            log.write('{:9.2f}'.format(g_time_step) + ", " + '{:11.5f}'.format(angle) + ", " + '{:19.5f}'.format(angular_vel) + ", ")
+            log.write('{:11.3f}'.format(pressure_needed_l) + ", " + '{:12.3f}'.format(pressure_needed_r) + "\n")
             
 except OSError:
 except KeyboardInterrupt:
