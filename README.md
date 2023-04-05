@@ -23,8 +23,6 @@ Each program is organized in its own folder. In order to use that program on the
 The current programs are:
 
 * ```controller``` - This is the main controller program.
-* ```sensor_data``` - This program reports the on board IMU and pressure transducer data.
-* ```motor_control``` - This program remote controls just the stepper motors.
 * ```pressure_testing``` - This program is for our testing procedures that checks for air leaks.
 * ```safety_testing``` - This program is for our testing procedures that checks our safety stop block.
 

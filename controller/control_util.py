@@ -1,8 +1,8 @@
-# math utility
+# control_util.py
+# April 4th, 2023
 
 # imports
 import math
-
 
 # angle functions
 def deg_to_rad(degrees):
@@ -10,7 +10,6 @@ def deg_to_rad(degrees):
 
 def rad_to_deg(radians):
     return radians * (180.0 / math.pi)
-
 
 # matrix class
 class matrix:
@@ -164,4 +163,9 @@ class matrix:
             lead += 1
         return matrix(A)
 
-
+# controller class
+class controller:
+    
+    def __init__(self):
+        
+        
