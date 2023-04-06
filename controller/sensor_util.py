@@ -1,5 +1,5 @@
 # sensor_util.py
-# April 4th, 2023
+# April 5th, 2023
 
 # imports
 import time
@@ -44,11 +44,11 @@ class bno055:
             raise RuntimeError("Failed to find expected ID register values. Check wiring!")
         self.operation_mode(CONFIG_MODE)
         self.system_trigger(0x20)  # reset
-        time.sleep(700)
+        time.sleep_ms(700)
         self.power_mode(0x00)  # POWER_NORMAL
         self.axis(axis)
         self.page(0)
-        time.sleep(10)
+        time.sleep_ms(10)
         self.operation_mode(mode)
         self.system_trigger(0x80)  # external oscillator
         time.sleep(200)
@@ -124,7 +124,7 @@ class bno055:
 # motor defines
 MOTOR_DIR_OPEN = 0
 MOTOR_DIR_CLOSE = 1
-MOTOR_STEP_TIME = 0.0075
+MOTOR_STEP_TIME = 7
 
 # motor class
 class stepper_motor():
@@ -151,7 +151,7 @@ class stepper_motor():
             self.current_step -= 1
             
     # set the target step
-    def set_wanted_pressure(self, psi):
+    def set_target_pressure(self, psi):
         self.target_step = round(((psi+41.531) / 0.0571)) # convert to step
     
     # update step
@@ -166,7 +166,7 @@ class stepper_motor():
         self.current_dir = MOTOR_DIR_CLOSE # set direction to close
         while self.current_step != 0:
             self.step_once()
-            time.sleep(MOTOR_STEP_TIME)
+            time.sleep_ms(MOTOR_STEP_TIME)
         
 # transducer class
 class transducer():

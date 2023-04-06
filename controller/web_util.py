@@ -1,5 +1,5 @@
 # web_util.py
-# April 4th, 2023
+# April 5th, 2023
 
 # imports
 import network
@@ -13,15 +13,13 @@ OPCODE_TEXT = 1
 OPCODE_BINARY = 2
 OPCODE_CLOSE = 8
 
-# general helpers
-
+# serves a webpage to anyone that connects
 def serve_webpage():
     
     # create listening socket
     addr = ('0.0.0.0', 80)
     s = usocket.socket()
     s.setsockopt(usocket.SOL_SOCKET, usocket.SO_REUSEADDR, 1)
-    s.setblocking(False)
     s.bind(addr)
     s.listen(1)
     

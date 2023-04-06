@@ -11,6 +11,7 @@
   body {
     background: #202020;
     color: rgb(255, 255, 255);
+    font-family: 'Consolas';
     display: flex;
     justify-content: center;
     align-items: center;
@@ -25,10 +26,10 @@
     position: absolute;
     top: 50vh;
     left: 50vw;
-    height: 75vh;
-    width: 75vw;
+    height: 75vw;
+    width: 90vw;
     margin-top: -37.5vh;
-    margin-left: -37.5vw;
+    margin-left: -45vw;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(8, 1fr);
@@ -37,19 +38,17 @@
 
   .item {
     font-family: 'Consolas';
-    text-shadow: 0.05em 0.08em black;
+    text-shadow: 0.07rem 0.1rem black;
     border-radius: 1.5vw;
   }
 
-  .button {
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2em;
-    cursor: pointer;
+  .panel {
+    font-size: 1.75rem;
+    background-color: #333333;
+    box-shadow: 0 16px #181818;
   }
+
+  /* title */
 
   .title {
     font-size: 3rem;
@@ -58,13 +57,216 @@
     grid-row: 1;
   }
 
-  .panel {
-    font-size: 1.5em;
-    background-color: #333333;
-    box-shadow: 0 16px #181818;
-    display: flex;
-    flex-direction: column;
+  /* angle output */
+  .angle_output_container {
+    grid-column-start: 1;
+    grid-column-end: 2;
+    grid-row-start: 5;
+    grid-row-end: 7;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 25% 50% 25%;
+    justify-items: center;
     align-items: center;
+  }
+
+  .angle_output_title {
+    grid-column-start: 1;
+    grid-column-end: 4;
+    grid-row: 1;
+  }
+
+  .angle_output_text {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 3rem;
+  }
+
+  /* velocity output */
+  .velocity_output_container {
+    grid-column-start: 2;
+    grid-column-end: 3;
+    grid-row-start: 5;
+    grid-row-end: 7;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 25% 50% 25%;
+    justify-items: center;
+    align-items: center;
+  }
+
+  .velocity_output_title {
+    grid-column-start: 1;
+    grid-column-end: 4;
+    grid-row: 1;
+  }
+
+  .velocity_output_text {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 3rem;
+  }
+
+  /* testing light */
+
+  .testing_light {
+    grid-column-start: 3;
+    grid-column-end: 4;
+    grid-row-start: 5;
+    grid-row-end: 7;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 25% 50% 25%;
+    justify-items: center;
+    align-items: center;
+  }
+
+  .testing_light_title {
+    grid-column-start: 1;
+    grid-column-end: 4;
+    grid-row: 1;
+  }
+
+  .testing_light_base,
+  .testing_light_LED {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .testing_light_base {
+    background-color: #424242;
+    width: 60%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+  }
+
+  .testing_light_LED {
+    width: 50%;
+    aspect-ratio: 1;
+    background-color: #2c4200;
+    box-shadow: rgba(0, 0, 0, 0.2) 0 0 0px 0, inset #213100 0 0 24px;
+    border-radius: 100%;
+    -webkit-animation: none;
+  }
+
+  @-webkit-keyframes blink_light {
+    from {
+      background-color: #3d5c00;
+      box-shadow: rgba(0, 0, 0, 0.2) 0 0 0px 0, inset #213100 0 0 24px;
+    }
+
+    5% {
+      background-color: #ABFF00;
+      box-shadow: rgba(0, 0, 0, 0.2) 0 0 24px 0, inset #304701 0 0 12px, #89FF00 0 0 24px;
+    }
+
+    15% {
+      background-color: #ABFF00;
+      box-shadow: rgba(0, 0, 0, 0.2) 0 0 24px 0, inset #304701 0 0 12px, #89FF00 0 0 24px;
+    }
+
+    20% {
+      background-color: #3b5800;
+      box-shadow: rgba(0, 0, 0, 0.2) 0 0 0px 0, inset #213100 0 0 24px;
+    }
+  }
+
+  /* input panel */
+
+  .input {
+    grid-column-start: 1;
+    grid-column-end: 3;
+    grid-row-start: 2;
+    grid-row-end: 5;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    grid-gap: 1rem;
+
+    justify-items: center;
+    align-items: center;
+  }
+
+  /* rocket */
+  .rocket_model {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    transform: scale(75%) translateY(40px);
+  }
+
+  .target_angle_line {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    transform: scale(75%) translateY(40px);
+  }
+
+  /* input desired angle */
+
+  .input_angle_text {
+    grid-column-start: 1;
+    grid-column-end: 3;
+    grid-row: 1;
+    margin-left: 2rem;
+  }
+
+  .input_angle_slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 20px;
+    border-radius: 15px;
+    background: #545454;
+    outline: none;
+    grid-column-start: 3;
+    grid-column-end: 7;
+    grid-row: 1;
+  }
+
+  .input_angle_slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #1d5aaa;
+    cursor: pointer;
+  }
+
+  .input_slider_textbox {
+    background-color: #545454;
+    color: white;
+    font-family: 'Consolas';
+    font-size: 2rem;
+    text-shadow: 0.05em 0.08em black;
+    border: none;
+    border-radius: 5px;
+    text-align: center;
+    grid-column: 7;
+    grid-row: 1;
+    margin-right: 2rem;
+  }
+
+  .input_slider_textbox::-webkit-outer-spin-button,
+  .input_slider_textbox::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Buttons */
+
+  .button {
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    cursor: pointer;
   }
 
   .start {
@@ -102,56 +304,6 @@
     transform: translateY(8px);
     box-shadow: 0 8px rgb(138, 111, 38);
   }
-
-  .input {
-    grid-column-start: 1;
-    grid-column-end: 3;
-    grid-row-start: 2;
-    grid-row-end: 5;
-  }
-
-  .angle {
-    grid-column-start: 1;
-    grid-column-end: 2;
-    grid-row-start: 5;
-    grid-row-end: 7;
-  }
-
-  .velocity {
-    grid-column-start: 2;
-    grid-column-end: 3;
-    grid-row-start: 5;
-    grid-row-end: 7;
-  }
-
-  .controller {
-    grid-column-start: 3;
-    grid-column-end: 4;
-    grid-row-start: 5;
-    grid-row-end: 7;
-  }
-
-  .slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 50%;
-    height: 20px;
-    border-radius: 15px;
-    background: #545454;
-    outline: none;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #1d5aaa;
-    cursor: pointer;
-  }
-
-  .slider_text {}
 </style>
 
 <body>
@@ -163,9 +315,32 @@
 
     <!-- Input Panel -->
     <div class="item panel input">
-      Input Angle:
-      <input type="range" class="slider" id="slider" min="-180" max="180" oninput="update_text_input(this.value)">
-      <input type="number" class="slider_text" id="text-input" min="-180" max="180" oninput="update_slider(this.value)">
+      <div class="input_angle_text">Input Angle:</div>
+      <input type="range" class="input_angle_slider" id="slider" min="-90" max="90" value="0"
+        oninput="update_target_angle(this.value)">
+      <input type="number" class="input_slider_textbox" id="text-input" value="0" min="-90" max="90"
+        oninput="update_target_angle(this.value)">
+
+      <svg class="rocket_model" id="rocket_model">
+        <rect x="80" y="50" width="40" height="100" rx="8" ry="8" style="fill:rgb(27, 27, 27);" />
+
+        <rect x="70" y="25" width="60" height="10" style="fill:rgb(104, 104, 104);" />
+        <rect x="70" y="165" width="60" height="10" style="fill:rgb(104, 104, 104);" />
+        <rect x="70" y="95" width="60" height="10" style="fill:rgb(104, 104, 104);" />
+
+        <rect x="65" y="27" width="5" height="6" style="fill:rgb(104, 104, 104);" />
+        <rect x="130" y="27" width="5" height="6" style="fill:rgb(104, 104, 104);" />
+
+        <rect x="92.5" y="25" width="15" height="150" style="fill:rgb(119, 119, 119);" />
+        <rect x="70" y="25" width="5" height="150" style="fill:rgb(119, 119, 119);" />
+        <rect x="125" y="25" width="5" height="150" style="fill:rgb(119, 119, 119);" />
+      </svg>
+
+      <svg class="target_angle_line" id="target_angle_line">
+        <path d="M 100 200 l 0 -200" stroke="red" stroke-dasharray="10,10" />
+      </svg>
+
+
     </div>
 
     <!-- Buttons -->
@@ -174,72 +349,109 @@
     <button class="item button download">Download</button>
 
     <!-- Output Panel -->
-    <div class="item panel angle">
-      Angle
-      <p id="angle_output">-</p><p>&#xb0;</p>
+    <div class="item panel angle_output_container">
+      <p class="angle_output_title">Angle</p>
+      <p class="angle_output_text" id="angle_output_text">&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&#xb0;</p>
     </div>
-    <div class="item panel velocity">
-      Velocity
-      <p id="angular_vel_output">-</p><p>&#xb0;/s</p>
+    <div class="item panel velocity_output_container">
+      <p class="velocity_output_title">Velocity</p>
+      <p class="velocity_output_text" id="velocity_output_text">&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&#xb0;/s</p>
     </div>
-    <div class="item panel controller"></div>
+
+    <!-- Status Light -->
+    <div class="item panel testing_light">
+      <p class="testing_light_title">Status</p>
+      <div class="testing_light_base"></div>
+      <div class="testing_light_LED" id="testing_light_LED"></div>
+    </div>
 
   </div>
 
   <script>
 
-    function update_text_input(val) {
+    //var socket = new WebSocket('ws://192.168.4.1:80/ws');
+    var current_angle_text = document.getElementById("angle_output_text");
+    var current_velocity_text = document.getElementById("velocity_output_text");
+    var led_testing_light = document.getElementById("testing_light_LED");
+    var rocket_model = document.getElementById("rocket_model");
+    var target_angle_line = document.getElementById("target_angle_line");
+
+    function update_target_angle(val) {
+      val = Math.min(Math.max(val, -90), 90);
+
       document.getElementById('text-input').value = val;
-      socket.send(val);
+      document.getElementById('slider').value = val;
+
+      target_angle_line.style.transform = "scale(75%) translateY(40px) rotateZ(" + val + "deg)"
     }
 
-    function update_slider(val) {
-      if (val < -180) {
-        val = -180;
-      } else if (val > 180) {
-        val = 180;
-      }
-      document.getElementById('slider').value = val;
-      socket.send(val);
+    function update_current_angle(value) {
+      str = (value.toFixed(2).padStart(7, ' ') + '° ').replace(/ /g, '&nbsp;');
+      current_angle_text.innerHTML = str;
+    }
+
+    function update_current_velocity(value) {
+      str = (value.toFixed(2).padStart(8, ' ') + '°/s').replace(/ /g, '&nbsp;');
+      current_velocity_text.innerHTML = str;
     }
 
     function send_start() {
-    console.log("START")
-        if(socket.readyState === socket.OPEN) {
-          socket.send("Start");
-        }
+      //if (socket.readyState === socket.OPEN) {
+      //  socket.send("Start");
+      //}
+
+      led_testing_light.style.webkitAnimation = "blink_light 1s infinite";
     }
+
     function send_stop() {
-        if(socket.readyState === socket.OPEN) {
-            socket.send("Stop");
-        }
+      //if (socket.readyState === socket.OPEN) {
+      //  socket.send("Stop");
+      //}
+
+      led_testing_light.style.webkitAnimation = "none";
     }
 
-    var socket = new WebSocket('ws://192.168.4.1:80/ws');
+    //function send_download() {
+      //if (socket.readyState === socket.OPEN) {
+      //  socket.send("Download")
+      //}
+    //}
 
+    //socket.onopen = function (event) {
+    //  console.log('Connected to server');
+    //};
 
-    let angle_output = document.querySelector('#angle_ouput');
-    let angular_vel_output = document.querySelector('#angle_ouput');
-    
-    socket.onopen = function(event) {
-      console.log('Connected to server');
-    };
+    //socket.onmessage = function (event) {
+    //  console.log('Received data: ' + event.data);
+    //  current_angle_text.innerHTML = event.data;
 
-    socket.onmessage = function(event) {
-      //console.log('Received data: ' + event.data);
-    };
+      // Create element with <a> tag
+      //const link = document.createElement("a");
 
-    socket.onclose = function(event) {
-      console.log('Disconnected from server');
-    };
+      // Create a blog object with the file content which you want to add to the file
+      //const file = new Blob([content], { type: 'text/plain' });
 
+      // Add file content in the object URL
+      //link.href = URL.createObjectURL(file);
 
-    setInterval(function() {
-        if(socket.readyState === socket.OPEN) {
-            socket.send("update");
-        }
-    }, 50);
+      // Add file name
+      //link.download = "sample.txt";
 
+      // Add click event to <a> tag to save file.
+      //link.click();
+      //URL.revokeObjectURL(link.href);
+
+    //};
+
+    //socket.onclose = function(event) {
+    //  console.log('Disconnected from server');
+    //};
+
+    //setInterval(function() {
+    //    if(socket.readyState === socket.OPEN) {
+    //        socket.send("update");
+    //    }
+    //}, 50);
 
   </script>
 </body>

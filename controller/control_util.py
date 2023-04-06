@@ -1,5 +1,5 @@
 # control_util.py
-# April 4th, 2023
+# April 5th, 2023
 
 # imports
 import math
@@ -163,9 +163,19 @@ class matrix:
             lead += 1
         return matrix(A)
 
-# controller class
-class controller:
+class fss_controller:
     
-    def __init__(self):
+    def __init__(self, K, x0):
+        self.K = K # k matrix (1x2)
+        self.x0 = x0 # target state (1x2)
+        #self.df = 0.180975
+        #self.F_avg = 2.79815
         
-        
+    def update(self, theta, theta_dot):
+        x = matrix([ [0.0, theta_dot], [theta, 0.0] ]) # state (2x2)
+        cmd = self.x0 - self.K * x # target_state - k_matrix * state (1x2)
+        F = matrix([[0.5, 0.5, 2.79815], [0.180975, -0.180975, cmd[0][0]]])
+        T = F.rref() # required thrust of the system
+        p_top = max(1.246, min(4.3503, T[0][2])) * 22.5537 - 3.1155 # pressure required top
+        p_bot = max(1.246, min(4.3503, T[1][2])) * 22.5537 - 3.1155 # pressure required bottom
+        return (p_top, p_bot)
