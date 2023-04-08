@@ -37,6 +37,7 @@ _AXIS_MAP_CONFIG = 0x41
 
 # bno055 imu class
 class bno055:
+    
     def __init__(self, i2c, address=0x28, mode=NDOF_MODE, axis=AXIS_P4):
         self.i2c = i2c
         self.address = address
@@ -51,7 +52,8 @@ class bno055:
         time.sleep_ms(10)
         self.operation_mode(mode)
         self.system_trigger(0x80)  # external oscillator
-        time.sleep(200)
+        time.sleep_ms(200)
+        print("imu connected!")
 
     def read_registers(self, register, size=1):
         return self.i2c.readfrom_mem(self.address, register, size)
@@ -126,6 +128,8 @@ MOTOR_DIR_OPEN = 0
 MOTOR_DIR_CLOSE = 1
 MOTOR_STEP_TIME = 7
 
+MOTOR_MAX_REV = 8
+
 # motor class
 class stepper_motor():
     
@@ -145,14 +149,20 @@ class stepper_motor():
     def step_once(self):
         self.step_pin.value(1)
         self.step_pin.value(0)
-        if (self.current_dir == 1):
+        if (self.current_dir == MOTOR_DIR_OPEN):
             self.current_step += 1
-        elif (self.current_dir == 0):
+        elif (self.current_dir == MOTOR_DIR_CLOSE):
             self.current_step -= 1
             
     # set the target step
     def set_target_pressure(self, psi):
+        target_value = round(((psi+41.531) / 0.0571))
+        if (target_value > MOTOR_MAX_REV * 200):
+            self.target_step = target_value
         self.target_step = round(((psi+41.531) / 0.0571)) # convert to step
+    
+    def set_target_step(self, step):
+        self.target_step = step
     
     # update step
     def update(self):
@@ -160,6 +170,7 @@ class stepper_motor():
             self.current_dir = (self.current_step - self.target_step) > 0  # calculate direction
             self.dir_pin.value(self.current_dir) # set the direction pin
             self.step_once() # step once
+            
         
     # returns the motor to its original step position
     def return_to_zero(self):

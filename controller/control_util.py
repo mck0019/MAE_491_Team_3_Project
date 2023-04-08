@@ -6,10 +6,15 @@ import math
 
 # angle functions
 def deg_to_rad(degrees):
-    return degrees * math.pi / 180.0
+    return degrees * (math.pi / 180.0)
 
 def rad_to_deg(radians):
     return radians * (180.0 / math.pi)
+
+# math functions
+def remap(value, old_min, old_max, new_min, new_max):
+    return ((value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
+
 
 # matrix class
 class matrix:
@@ -165,17 +170,137 @@ class matrix:
 
 class fss_controller:
     
-    def __init__(self, K, x0):
+    def __init__(self, K_matrix, target_state):
+        self.K_matrix = K_matrix # k matrix (1x2)
+        self.r_t = target_state # target state (2x1)
+        
+        self.min_thrust = 0.05
+        self.max_thrust = 2.5
+        self.f_avg = (self.min_thrust + self.max_thrust) / 2
+        
+        self.I = 0.044 # moment of inertia - kg*m^2
+        self.K = 0.12 # spring constant N*m/rad
+        self.C = 0.2 # damping friction N*m*s/rad
+        
+    def set_desired_angle(self, value):
+        self.r_t = matrix([deg_to_rad(value), 0.0])
+        
+    def update(self, theta, theta_dot):
+        
+        # implement control law
+        z_t = matrix([[0, theta_dot],[theta, 0]]) # z(t) [2x2]
+        u_t = self.r_t - self.K_matrix * z_t # u(t) = r(t) - K * z(t) [1x2]
+        forces = matrix([[0.5, 0.5, self.f_avg], [0.180975, -0.180975, u_t[0][0]]]) # required force [2x3]
+        thrusts = forces.rref() # required thrust matrix [2x3]
+        
+        # convert to pressure
+        p_top = max(self.min_thrust, min(self.max_thrust, thrusts[0][2])) * 22.5537 - 3.1155 # pressure required top
+        p_bot = max(self.min_thrust, min(self.max_thrust, thrusts[1][2])) * 22.5537 - 3.1155 # pressure required bottom
+        
+        return (p_top, p_bot)
+    
+    
+class fss_controller_real:
+    
+    def __init__(self, K, Ki, updateInt):
         self.K = K # k matrix (1x2)
-        self.x0 = x0 # target state (1x2)
-        #self.df = 0.180975
-        #self.F_avg = 2.79815
+        self.x0 = matrix([deg_to_rad(30), 0.0]) # target state (1x2)
+        self.cumulErr = 0
+        self.Ki = Ki
+        self.updateInt = updateInt/1000 # update interval for the controller. pass in milliseconds
+        self.lastErr = 0
+        self.loopCnt = 0 # loop counter
+        self.err = 0
+        
+    def set_desired_angle(self, value):
+        self.x0 = matrix([deg_to_rad(value), 0.0])
         
     def update(self, theta, theta_dot):
         x = matrix([ [0.0, theta_dot], [theta, 0.0] ]) # state (2x2)
         cmd = self.x0 - self.K * x # target_state - k_matrix * state (1x2)
-        F = matrix([[0.5, 0.5, 2.79815], [0.180975, -0.180975, cmd[0][0]]])
+        F = matrix([[0.5, 0.5, (0.05 + 2.5) / 2.0], [0.180975, -0.180975, cmd[0][0]]])
         T = F.rref() # required thrust of the system
-        p_top = max(1.246, min(4.3503, T[0][2])) * 22.5537 - 3.1155 # pressure required top
-        p_bot = max(1.246, min(4.3503, T[1][2])) * 22.5537 - 3.1155 # pressure required bottom
+        
+        self.err = self.x0[0][0] - (-theta) # compute error between desired and current angle
+        
+        if self.loopCnt == 0: # if we're on the first loop, derivative and integral errors are undefined
+            self.lastErr = self.err
+            self.cumulErr = 0 # set both equal to zero
+            self.loopCnt = 1 # update logical variable
+        else:
+            self.cumulErr += self.err*self.updateInt
+            
+        if (self.err > 0 and self.lastErr < 0) or (self.err < 0 and self.lastErr > 0) or (abs(self.err) < deg_to_rad(2)):
+            self.cumulErr = 0
+        
+        Ftop = T[0][2] - self.Ki*self.cumulErr
+        Fbot = T[1][2] + self.Ki*self.cumulErr
+        
+        print(self.err, self.cumulErr, Ftop, Fbot)
+        
+        p_top = max(0.05, min(2.5, Ftop)) * 22.5537 - 3.1155 # pressure required top
+        p_bot = max(0.05, min(2.5, Fbot)) * 22.5537 - 3.1155 # pressure required bottom
+        
+        self.lastErr = self.err
         return (p_top, p_bot)
+
+# PID Controller (just in case ;))
+class pid_controller:
+    
+    # Kp = 3, Ki = 5, Kd = 2 from MATLAB
+
+    def __init__(self,Kp,Ki,Kd,x0,updateInt):
+        self.Kp = Kp # proportional gain
+        self.Ki = Ki # integral gain
+        self.Kd = Kd # derivative gain
+        self.x0 = x0 # target ANGLE
+        self.updateInt = updateInt/1000 # update interval for the controller. pass in milliseconds
+        self.loopCnt = 0 # loop counter
+        self.cumulErr = 0
+        self.dErr = 0
+        self.lastErr = 0
+        
+    def set_desired_angle(self,value):
+        self.x0 = value # set desired angle
+        
+    def update(self, theta):
+        err = (self.x0 - theta) # compute error between desired and current angle
+
+        if self.loopCnt == 0: # if we're on the first loop, derivative and integral errors are undefined
+            self.cumulErr = 0 # set both equal to zero
+            self.dErr = 0
+            self.loopCnt = 1 # update logical variable
+        else: # otherwise compute integral and derivative errors as normal
+            self.cumulErr += err*self.updateInt # rectangular approximation of integral error for this update
+            self.dErr = (err-self.lastErr)/self.updateInt # first order finite difference approximation of derivative error
+        
+        controlTorque = (self.Kp*err) + (self.Ki*self.cumulErr) + (self.Kd*self.dErr) # compute control signal
+        
+        F = matrix([[0.5, 0.5, (0.05 + 2.5) / 2.0], [0.180975, -0.180975, controlTorque]]) # split torque into forces
+        T = F.rref() # required thrust of the system
+        
+        print(T[1][2], T[0][2])
+        
+        p_bot = max(0.05, min(2.7, T[0][2])) * 22.5537 - 3.1155 # pressure required top
+        p_top = max(0.05, min(2.7, T[1][2])) * 22.5537 - 3.1155 # pressure required bottom
+        
+        #print(p_top, p_bot)
+        
+        self.lastErr = err # set last error equal to this loop's error
+        
+        return (p_top, p_bot) # return required nozzle pressures
+
+class logger:
+    
+    def __init__(self, header):
+        self.log_file = open("log_file.csv", "w")
+        self.log_file.write(header)
+        
+    def write(self, *args):
+        for arg in args[0:-1]:
+            self.log_file.write(str(arg) + ", ")
+        self.log_file.write(str(args[-1]) + "\n")
+        
+    def close(self):
+        self.log_file.close()
+

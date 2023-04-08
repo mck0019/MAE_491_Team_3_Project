@@ -1,6 +1,11 @@
 # main.py
 # April 5th, 2023
 
+#TODO
+#
+# add in a way to reset the imu angle via the interface (the start button)
+
+
 # imports
 from control_util import *
 from sensor_util import *
@@ -29,37 +34,70 @@ g_pressure_needed_top = 0
 g_pressure_needed_bot = 0
 
 # set up imu
-#i2c = machine.I2C(0, scl=PIN_IMU_SCL, sda=PIN_IMU_SDA, freq=400000)
-#imu = bno055(i2c)
+i2c = machine.I2C(0, scl=PIN_IMU_SCL, sda=PIN_IMU_SDA, freq=400000)
+imu = bno055(i2c)
 
-# set up motors
-motor_top = stepper_motor(PIN_MOTOR_TOP_STEP, PIN_MOTOR_TOP_DIR)
-motor_bot = stepper_motor(PIN_MOTOR_BOT_STEP, PIN_MOTOR_BOT_DIR)
+# set up pressure transduces
+transducer_top = transducer(PIN_TRANSDUCER_TOP)
+transducer_bot = transducer(PIN_TRANSDUCER_BOT)
 
 # set up full state space model
-controller = fss_controller(K = matrix([0.9668, 0.8814]), x0 = matrix([0.785398, 0.0]))
+#controller = fss_controller(K_matrix = matrix([0.9668, 0.8814]), target_state = matrix([deg_to_rad(30), 0.0]))
+#controller = pid_controller(3.0, 5.0, 2.0, deg_to_rad(45), 100)
+controller = fss_controller_real(matrix([0.9668, 0.8814]), 0.825, 100)
 
 # start network
-network = start_network("Interface", "123456789")
+network = start_network("MAE 491 Project Interface", "123456789")
 
 # turn LED on
 PIN_LED.on()
 
+lock = _thread.allocate_lock()
+
 # stepper motor thread
 def motors_thread():
+    
+    motor_top = stepper_motor(PIN_MOTOR_TOP_STEP, PIN_MOTOR_TOP_DIR)
+    motor_bot = stepper_motor(PIN_MOTOR_BOT_STEP, PIN_MOTOR_BOT_DIR)
+    
+    global g_state
+    global g_pressure_needed_top
+    global g_pressure_needed_bot
+    
     while True:
-        if (g_state == "Start"):
+
+        lock.acquire()
+        state = g_state
+        pressure_needed_top = g_pressure_needed_top
+        pressure_needed_bot = g_pressure_needed_bot
+        lock.release()
+        
+        if (state == "Start"):
             
-            motor_top.set_target_pressure(g_pressure_needed_top)
-            motor_bot.set_target_pressure(g_pressure_needed_bot)
+            motor_top.set_target_pressure(pressure_needed_top)
+            motor_bot.set_target_pressure(pressure_needed_bot)
+            
+            #motor_top_error = abs(motor_top.target_step - motor_top.current_step)
+            #motor_bot_error = abs(motor_bot.target_step - motor_bot.current_step)
+            
+            #new_time_top = ((motor_top_error) / (1600)) * (50 - 7) + 7
+            #new_time_bot = ((motor_bot_error) / (1600)) * (50 - 7) + 7
+            
+            #new_time = max(new_time_top, new_time_bot)
+            #new_time = min(7, max(50, new_time))
             
             motor_top.update()
             motor_bot.update()
             
-            time.sleep_ms(MOTOR_STEP_TIME)
-        
-# start motors thread
-_thread.start_new_thread(motors_thread, ()) 
+            #time.sleep_ms(round(new_time))
+            time.sleep_ms(7)
+            
+        elif (state == "Stop"):
+            motor_top.set_target_step(0)
+            motor_bot.set_target_step(0)
+            motor_top.update()
+            motor_bot.update()
+            time.sleep_ms(7)
 
 # main loop
 while True:
@@ -69,6 +107,15 @@ while True:
     socket = web_socket(("0.0.0.0", 80)) # create socket
     socket.upgrade() # upgrade to web socket
     
+    g_state = "None"
+    state = g_state
+    start_time = 0
+    pressure_needed_top = 0
+    pressure_needed_bot = 0
+    log_file = logger("time, angle, angular_vel, pressure_read_top, pressure_read_bot, pressure_needed_top, pressure_needed_bot\n")
+    
+    motor_thread = _thread.start_new_thread(motors_thread, ()) # start the motor_thread
+    
     # control loop
     while True:
         
@@ -77,35 +124,63 @@ while True:
         if data==None: break;
         
         # decode message
-        message = data.decode()
+        message = str(data.decode())
+
+        result = {}
+        split_str = message.split(", ")
+        for item in split_str:
+            key, value = item.split(": ")
+            result[key.strip()] = value.strip()
         
-        # TODO: add in a parser to parse
-        # our incoming messages so that
-        # we can have more complex data
-        
-        if (message == "Start"):
-            g_state = "Start"
-        elif (message == "Stop"):
-            g_state = "Stop"
-        #elif (message =="Download"):
-            # TODO: add download option
+        if (result["cmd"] == "Start"):
+            state = "Start"
+            controller.set_desired_angle(float(result["arg"]))
+        elif (result["cmd"] == "Stop"):
+            state = "Stop"
         
         # if running test, run controller
-        if g_state == "Start":
+        if state == "Start":
             
-            #angle = imu.euler()[0] # read imu angle
-            #angular_vel = imu.gyro()[0] # read imu angular velocity
-            angle = 45.0
-            angular_vel = 1.0
+            # read transducer data
+            pressure_read_top = transducer_top.read()
+            pressure_read_bot = transducer_bot.read()
             
-            theta = -deg_to_rad(angle)
-            theta_dot = -deg_to_rad(angular_vel)
+            # read imu data
+            angle = imu.euler()[0] # angle in degrees
+            angular_vel = imu.gyroscope()[2] # angular velocity in radians per second
+            
+            # wrap the value
+            if angle > 180:
+                angle -= 360
+            
+            # convert to radians
+            theta = deg_to_rad(angle)
+            theta_dot = angular_vel
             
             # controller calculation
-            g_pressure_needed_top, g_pressure_needed_bot = controller.update(theta, theta_dot)
+            pressure_needed_top, pressure_needed_bot = controller.update(theta, theta_dot)
+            #pressure_needed_top, pressure_needed_bot = controller.update(theta)
             
-            # TODO: add logging back in
+            # write to log file
+            current_time = time.ticks_ms()
+            elapsed_time = time.ticks_diff(start_time, current_time)
+            
+            log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot, g_pressure_needed_top, g_pressure_needed_bot)
+            
+            # send data
+            update_data = "angle, " + str(-angle) + ", velocity, " + str(rad_to_deg(-angular_vel))
+            socket.send(update_data.encode())
+            
+        if state == "Stop":
+            log_file.close()
         
+        
+        lock.acquire()
+        g_state = state
+        g_pressure_needed_top = pressure_needed_top
+        g_pressure_needed_bot = pressure_needed_bot
+        lock.release()
+        
+    _thread.exit() # stop the motor thread
     socket.close() # close when disconnected
-
 

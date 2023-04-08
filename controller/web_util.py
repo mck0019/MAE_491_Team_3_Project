@@ -38,9 +38,18 @@ def serve_webpage():
             headers[key] = value.strip()
             
     # serve page
-    response = open("index.html", "r").read()
-    conn.send("HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n")
-    conn.send(response)
+    with open('index.html', 'r') as f:
+        html_data = f.read()
+    
+    conn.send("HTTP/1.1 200 OK\r\n")
+    conn.send("Content-Type: text/html\r\n")
+    conn.send("Content-Length: {}\r\n".format(len(html_data)))
+    conn.send("\r\n")
+    
+    chunk_size = 1024
+    for i in range(0, len(html_data), chunk_size):
+        chunk = html_data[i:i+chunk_size]
+        conn.send(chunk.encode())
     conn.close()
 
 # network helpers

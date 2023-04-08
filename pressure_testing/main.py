@@ -10,13 +10,13 @@ import _thread
 import time
 
 # pin defines
-PIN_IMU_SDA = machine.Pin(0, mode=Pin.IN)
-PIN_IMU_SCL = machine.Pin(1, mode=Pin.IN)
+PIN_IMU_SDA = machine.Pin(0, mode=machine.Pin.IN)
+PIN_IMU_SCL = machine.Pin(1, mode=machine.Pin.IN)
 
-PIN_MOTOR_TOP_STEP = machine.Pin(2, mode=Pin.OUT)
-PIN_MOTOR_TOP_DIR = machine.Pin(3, mode=Pin.OUT)
-PIN_MOTOR_BOT_STEP = machine.Pin(5, mode=Pin.OUT)
-PIN_MOTOR_BOT_DIR = machine.Pin(4, mode=Pin.OUT)
+PIN_MOTOR_TOP_STEP = machine.Pin(2, mode=machine.Pin.OUT)
+PIN_MOTOR_TOP_DIR = machine.Pin(3, mode=machine.Pin.OUT)
+PIN_MOTOR_BOT_STEP = machine.Pin(5, mode=machine.Pin.OUT)
+PIN_MOTOR_BOT_DIR = machine.Pin(4, mode=machine.Pin.OUT)
 
 PIN_TRANSDUCER_TOP = machine.ADC(26)
 PIN_TRANSDUCER_BOT = machine.ADC(27)
