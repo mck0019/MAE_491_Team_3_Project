@@ -347,7 +347,7 @@
     <!-- Buttons -->
     <button class="item button start" onclick="send_start()">Start</button>
     <button class="item button stop" onclick="send_stop()">Stop</button>
-    <button class="item button download">Download</button>
+    <button class="item button download" onclick="send_download()">Download</button>
 
     <!-- Output Panel -->
     <div class="item panel angle_output_container">
@@ -423,16 +423,33 @@
     };
 
     socket.onmessage = function (event) {
-      const pairs = event.data.split(", ");
+      
+      str = event.data;
+      const pairs = str.split(";");
       const dict = {};
-      for (let i = 0; i < pairs.length; i += 2) {
-        dict[pairs[i]] = parseFloat(pairs[i + 1]);
+      pairs.forEach(pair => {
+        const [key, value] = pair.trim().split(": ");
+        dict[key] = value;
+      });  
+      
+      
+      if (dict["cmd"] === "Update") {
+        angle = parseFloat(dict["angle"])
+        angular_vel = parseFloat(dict["velocity"])
+        update_current_angle(angle)
+        update_current_velocity(angular_vel)
+        rocket_model.style.transform = "scale(75%) translateY(40px) rotateZ(" + -angle + "deg)"
+      } else if (dict["cmd"] === "Download") {
+        data = dict["data"];
+        const csv_blob = new Blob([data], {type: 'text/csv'});
+        const csv_url = URL.createObjectURL(csv_blob);
+        const download_link = document.createElement('a');
+        download_link.setAttribute('href', csv_url);
+        download_link.setAttribute('download', 'data.csv');
+        document.body.appendChild(download_link);
+        download_link.click();
       }
       
-      angle = dict["angle"]
-      update_current_angle(angle)
-      update_current_velocity(dict["velocity"])
-      rocket_model.style.transform = "scale(75%) translateY(40px) rotateZ(" + -angle + "deg)"
     };
 
     socket.onclose = function(event) {

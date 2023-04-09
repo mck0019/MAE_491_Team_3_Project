@@ -12,19 +12,5 @@ It is recommended to use the [Thonny IDE](https://thonny.org/) to upload files t
 
 To configure Thonny go to ```Tools > Options... > Interpreter``` and select ```MicroPython(Raspberry Pi Pico)``` as your interpreter.
 
-Then the Raspberry Pi Pico W can be connected via USB and any files open in Thonny can be saved on board the Pico.
-
-If any file is named ```main.py``` and saved to the Pico, it will start running automatically when Pico has power.
-
 ## Usage
-
-Each program is organized in its own folder. In order to use that program on the Pico device, you need to upload all of the files within that folder to the Pico. You then can disconnect the Raspberry Pi Pico W and insert it into the system. The Pico will automatically start running when the system is powered.
-
-The current programs are:
-
-* ```controller``` - This is the main controller program.
-* ```pressure_testing``` - This program is for our testing procedures that checks for air leaks.
-* ```safety_testing``` - This program is for our testing procedures that checks our safety stop block.
-
-Each of these programs will create a wireless access point labeled ```MAE491 Interface``` .
-Once connected the ip ```192.168.4.1``` can be typed in a browser to connect to the Pico to controller/view the data.
+In order to use that program on the Pico device, you need to upload all of the files within the src folder to the Pico. You then can disconnect the Raspberry Pi Pico W and power on the system. The Pico will automatically start running when the system is powered.

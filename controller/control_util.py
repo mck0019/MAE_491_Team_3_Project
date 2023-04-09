@@ -1,9 +1,12 @@
 # control_util.py
-# Last Updated: April 8th, 2023
+# Last Updated: April 9th, 2023
 # Authors: Michael Key, Ian Holbrook, John Thorne
 
 # imports
 import math
+
+# defines
+CONTROLLER_TIME_STEP = 0.1 # [s]
 
 # remaps a value from one range to a new range
 def remap(value, old_min, old_max, new_min, new_max):
@@ -45,6 +48,11 @@ class matrix:
         else:
             raise ValueError("Invalid input data")
         
+    # create an empty matrix
+    def zeros(rows, cols):
+        data = [[0] * cols for _ in range(rows)]
+        return matrix(data)
+    
     # get an element of the matrix
     def __getitem__(self, index):
         return self.data[index]    
@@ -110,6 +118,20 @@ class matrix:
         else:
             raise TypeError("Multiplication not supported between matrix and " + str(type(other)))
     
+    # absolute value
+    def abs(self):
+        abs_data = [[abs(col) for col in row] for row in self.data]
+        return matrix(abs_data)
+    
+    # maximum
+    def max(self):
+        max_val = None
+        for row in self.data:
+            for col in row:
+                if max_val is None or col > max_val:
+                    max_val = col
+        return max_val
+
     # matrix transpose 
     def transpose(self):
         # create a new matrix with swapped rows and columns
@@ -167,23 +189,23 @@ class matrix:
     def rref(self):
         A = self.data
         lead = 0
-        rowCount = len(A)
-        columnCount = len(A[0])
-        for r in range(rowCount):
-            if lead >= columnCount:
+        row_count = len(A)
+        column_count = len(A[0])
+        for r in range(row_count):
+            if lead >= column_count:
                 return
             i = r
             while A[i][lead] == 0:
                 i += 1
-                if i == rowCount:
+                if i == row_count:
                     i = r
                     lead += 1
-                    if columnCount == lead:
+                    if column_count == lead:
                         return
             A[i], A[r] = A[r], A[i]
             lv = A[r][lead]
             A[r] = [mrx / float(lv) for mrx in A[r]]
-            for i in range(rowCount):
+            for i in range(row_count):
                 if i != r:
                     lv = A[i][lead]
                     A[i] = [iv - lv*rv for rv,iv in zip(A[r],A[i])]
@@ -192,23 +214,35 @@ class matrix:
 
 # linear-quadratic regulator
 def lqr(A, B, Q, R):
-    P = Q
+    #
+    # A = [n x n]
+    # B = [n x m]
+    # Q = [n x n]
+    # R = [m x m]
+    #
+    # K = [m x n]
+    #
+    
+    n = A.rows
+    m = B.cols
+    P = matrix.zeros(n,n)
+    K = matrix.zeros(m,n)
+    
     max_iter = 100
     eps = 1e-6
+    
     for i in range(max_iter):
-        # P_new = Q + A.transpose() * P * A - A.transpose() * P * B * (R + B.transpose() * P * B).inverse() * B.transpose() * P * A
-
-        P_new = (P.transpose() * A * P) + Q
-        P_new = P_new - X * B * (B.transpose() * X * B + R).inverse() * B.transpose() * X * A
+        K_prev = K
+        A_T = A.transpose()
+        B_T = B.transpose()
         
-        if P.isclose(P_new, rel_tol=eps):
-            P = P_new
+        P = Q + A_T * P * A - A_T * P * B * (R + (B_T * P * B)).inverse() *  B_T * P * A
+        K = (R + B_T * P * B).inverse() * B_T * P * A
+        
+        if ((K - K_prev).abs()).max() < eps:
             break
-        P = P_new
-
-    # Compute the optimal control gain
-    K = (R + B.transpose() * P * B).inverse() * B.transpose() * P * A
-
+        
+    return K
 
 # full state space controller
 class fss_controller:
@@ -243,95 +277,97 @@ class fss_controller:
         
         return (p_top, p_bot)
     
-class fss_controller_real:
     
-    def __init__(self, K, Ki, updateInt):
+# full state space controller with an integrator 
+class fss_controller_w_int:
+    
+    # controller constructor
+    def __init__(self, K, K_i):
         self.K = K # k matrix (1x2)
-        self.x0 = matrix([deg_to_rad(30), 0.0]) # target state (1x2)
-        self.cumulErr = 0
-        self.Ki = Ki
-        self.updateInt = updateInt/1000 # update interval for the controller. pass in milliseconds
-        self.lastErr = 0
-        self.loopCnt = 0 # loop counter
-        self.err = 0
+        self.x0 = matrix([0.0, 0.0]) # target state (1x2)
+        self.K_i = K_i # integrator gain coefficient
+        self.first_iter = True # first iteration flag
         
-    def set_desired_angle(self, value):
-        self.x0 = matrix([deg_to_rad(value), 0.0])
+        self.cumul_err = 0 # cumulative error
+        self.curr_err = 0 # current error
+        self.prev_err = 0 # previous error
         
+        self.min_thrust = 0.1
+        self.max_thrust = 2.7
+        self.force_avg = (self.min_thrust + self.max_thrust) / 2.0
+        
+    # set the target angle
+    def set_target_angle(self, value):
+        self.x0 = matrix([deg_to_rad(value), 0.0]) # set x0 matrix [rad]
+        
+    # update function
     def update(self, theta, theta_dot):
+        
         x = matrix([ [0.0, theta_dot], [theta, 0.0] ]) # state (2x2)
         cmd = self.x0 - self.K * x # target_state - k_matrix * state (1x2)
-        F = matrix([[0.5, 0.5, (0.05 + 2.5) / 2.0], [0.180975, -0.180975, cmd[0][0]]])
+        F = matrix([[0.5, 0.5, self.force_avg], [0.180975, -0.180975, cmd[0][0]]])
         T = F.rref() # required thrust of the system
         
-        self.err = self.x0[0][0] - (-theta) # compute error between desired and current angle
+        self.err = self.x0[0][0] - theta # compute error between desired and current angle
         
-        if self.loopCnt == 0: # if we're on the first loop, derivative and integral errors are undefined
-            self.lastErr = self.err
-            self.cumulErr = 0 # set both equal to zero
-            self.loopCnt = 1 # update logical variable
+        if self.first_iter: # if we're on the first loop, derivative and integral errors are undefined
+            self.last_err = self.err
+            self.cumul_err = 0 # set both equal to zero
+            self.first_iter = False # update first iteration flag
         else:
-            self.cumulErr += self.err*self.updateInt
+            self.cumul_err += self.err * CONTROLLER_TIME_STEP
             
-        if (self.err > 0 and self.lastErr < 0) or (self.err < 0 and self.lastErr > 0) or (abs(self.err) < deg_to_rad(2)):
-            self.cumulErr = 0
+        if (self.err > 0 and self.last_err < 0) or (self.err < 0 and self.last_err > 0) or (abs(self.err) < deg_to_rad(2)):
+            self.cumul_err = 0
         
-        Ftop = T[0][2] - self.Ki*self.cumulErr
-        Fbot = T[1][2] + self.Ki*self.cumulErr
+        F_top = T[0][2] - self.K_i * self.cumul_err
+        F_bot = T[1][2] + self.K_i * self.cumul_err
         
-        print(self.err, self.cumulErr, Ftop, Fbot)
+        p_top = max(self.min_thrust, min(self.max_thrust, F_top)) * 22.5537 - 3.1155 # pressure required top
+        p_bot = max(self.min_thrust, min(self.max_thrust, F_bot)) * 22.5537 - 3.1155 # pressure required bottom
         
-        p_top = max(0.05, min(2.5, Ftop)) * 22.5537 - 3.1155 # pressure required top
-        p_bot = max(0.05, min(2.5, Fbot)) * 22.5537 - 3.1155 # pressure required bottom
-        
-        self.lastErr = self.err
+        self.last_err = self.err
         return (p_top, p_bot)
 
 # PID Controller (just in case ;))
 class pid_controller:
     
-    # Kp = 3, Ki = 5, Kd = 2 from MATLAB
-
-    def __init__(self,Kp,Ki,Kd,x0,updateInt):
-        self.Kp = Kp # proportional gain
-        self.Ki = Ki # integral gain
-        self.Kd = Kd # derivative gain
-        self.x0 = x0 # target ANGLE
-        self.updateInt = updateInt/1000 # update interval for the controller. pass in milliseconds
-        self.loopCnt = 0 # loop counter
-        self.cumulErr = 0
-        self.dErr = 0
-        self.lastErr = 0
+    # PID controller constructor 
+    def __init__(self,K_p,K_i,K_d,x0):
+        self.K_p = K_p # proportional gain coefficient
+        self.K_i = K_i # integral gain coefficient
+        self.K_d = K_d # derivative gain coefficient
+        self.x0 = x0 # target angle [rad]
         
-    def set_desired_angle(self,value):
+        self.first_iter = True # first interaction flag
+        
+        self.cumul_err = 0 # cumulative error
+        self.d_err = 0 # derivative error
+        self.last_err = 0 # last error
+        
+    # set the target angle
+    def set_target_angle(self, value):
         self.x0 = value # set desired angle
         
+    # update function
     def update(self, theta):
         err = (self.x0 - theta) # compute error between desired and current angle
 
-        if self.loopCnt == 0: # if we're on the first loop, derivative and integral errors are undefined
-            self.cumulErr = 0 # set both equal to zero
-            self.dErr = 0
-            self.loopCnt = 1 # update logical variable
+        if self.first_iter: # if we're on the first loop, derivative and integral errors are undefined
+            self.cumul_err = 0 # set both equal to zero
+            self.d_err = 0
+            self.first_iter = False # update flag
         else: # otherwise compute integral and derivative errors as normal
-            self.cumulErr += err*self.updateInt # rectangular approximation of integral error for this update
-            self.dErr = (err-self.lastErr)/self.updateInt # first order finite difference approximation of derivative error
+            self.cumul_err += err * CONTROLLER_TIME_STEP # rectangular approximation of integral error for this update
+            self.d_err = (err - self.last_err) / CONTROLLER_TIME_STEP # first order finite difference approximation of derivative error
         
-        controlTorque = (self.Kp*err) + (self.Ki*self.cumulErr) + (self.Kd*self.dErr) # compute control signal
+        control_torque = (self.K_p * err) + (self.K_i * self.cumul_err) + (self.K_d * self.d_err) # compute control signal
         
-        F = matrix([[0.5, 0.5, (0.05 + 2.5) / 2.0], [0.180975, -0.180975, controlTorque]]) # split torque into forces
-        T = F.rref() # required thrust of the system
-        
-        print(T[1][2], T[0][2])
-        
-        p_bot = max(0.05, min(2.7, T[0][2])) * 22.5537 - 3.1155 # pressure required top
-        p_top = max(0.05, min(2.7, T[1][2])) * 22.5537 - 3.1155 # pressure required bottom
-        
-        #print(p_top, p_bot)
+        # TODO: Figure out conversion between control torque and output pressures
         
         self.lastErr = err # set last error equal to this loop's error
         
-        return (p_top, p_bot) # return required nozzle pressures
+        return # return required nozzle pressures
 
 class logger:
     

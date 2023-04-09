@@ -1,5 +1,5 @@
 # sensor_util.py
-# Last Updated: April 8th, 2023
+# Last Updated: April 9th, 2023
 # Author: Michael Key
 
 # imports
@@ -39,47 +39,76 @@ _AXIS_MAP_CONFIG = 0x41
 # bno055 imu class
 class imu:
     
-    # bno055 constructor
-    def __init__(self, scl_pin, sda_pin, freq=400000, address=0x28, mode=NDOF_MODE, axis=AXIS_P4):
-
-        # set up pins and i2c
-        self.i2c = machine.I2C(0, scl=scl_pin, sda=sda_pin, freq=freq)
+    def __init__(self, scl_pin, sda_pin, freq = 400000,address=0x28, mode=NDOF_MODE, axis=AXIS_P4):
+        
+        i2c = machine.I2C(0, scl=scl_pin, sda=sda_pin, freq=freq)
+        self.i2c = i2c
         self.address = address
-
-        # read id
-        if self.read_registers(0x00, 4) != bytes([0xA0, 0xFB, 0x32, 0x0F]):
+        if self.read_id() != bytes([0xA0, 0xFB, 0x32, 0x0F]):
             print("imu connected incorrectly")
             return
-        
-        # start up procedure
-        self._write_registers(_MODE_REGISTER, CONFIG_MODE) # set to config mode
-        self._write_registers(0x3F, bytes([0x20])) # reset
-        time.sleep_ms(700) 
-        self._write_registers(_POWER_REGISTER, bytes([0x00])) # power normal
-        self._write_registers(_AXIS_MAP_CONFIG, axis) # set axis
-        self._write_registers(0x3F, bytes([0])) # page
+        self.operation_mode(CONFIG_MODE)
+        self.system_trigger(0x20)  # reset
+        time.sleep_ms(700)
+        self.power_mode(0x00)  # POWER_NORMAL
+        self.axis(axis)
+        self.page(0)
         time.sleep_ms(10)
-        self._write_registers(_MODE_REGISTER, mode) # set mode
-        self._write_registers(0x3F, 0x80) # external oscillator
+        self.operation_mode(mode)
+        self.system_trigger(0x80)  # external oscillator
         time.sleep_ms(200)
-
         print("imu connected!")
 
-    # read data from a register
-    def _read_registers(self, register, size=1):
+    def read_registers(self, register, size=1):
         return self.i2c.readfrom_mem(self.address, register, size)
 
-    # write data to a registor
-    def _write_registers(self, register, data):
+    def write_registers(self, register, data):
         self.i2c.writeto_mem(self.address, register, data)
 
     def reset(self):
-        self.i2c.writeto_mem(self.address, 0x3F, bytes([0x20]))
+        self.operation_mode(CONFIG_MODE)
+        self.system_trigger(0x20)  # reset
+        time.sleep_ms(700)
+        self.power_mode(0x00)  # POWER_NORMAL
+        self.axis(AXIS_P4)
+        self.page(0)
+        time.sleep_ms(10)
+        self.operation_mode(NDOF_MODE)
+        self.system_trigger(0x80)  # external oscillator
+        time.sleep_ms(200)
+        
+    def operation_mode(self, mode=None):
+        if mode:
+            self.write_registers(_MODE_REGISTER, bytes([mode]))
+        else:
+            return self.read_registers(_MODE_REGISTER, 1)[0]
 
-    # sensor readings
+    def system_trigger(self, data):
+        self.write_registers(0x3F, bytes([data]))
+
+    def power_mode(self, mode=None):
+        if mode:
+            self.write_registers(_POWER_REGISTER, bytes([mode]))
+        else:
+            return self.read_registers(_POWER_REGISTER, 1)
+
+    def page(self, num=None):
+        if num:
+            self.write_registers(0x3F, bytes([num]))
+        else:
+            self.read_registers(0x3F)
 
     def temperature(self):
-        return self._read_registers(0x34, 1)[0]
+        return self.read_registers(0x34, 1)[0]
+
+    def read_id(self):
+        return self.read_registers(0x00, 4)
+
+    def axis(self, placement=None):
+        if placement:
+            self.write_registers(_AXIS_MAP_CONFIG, placement)
+        else:
+            return self.read_registers(_AXIS_MAP_CONFIG, 2)
 
     def quaternion(self):
         data = struct.unpack("<hhhh", self.read_registers(0x20, 8))
