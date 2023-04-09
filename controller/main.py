@@ -1,90 +1,82 @@
 # main.py
-# April 5th, 2023
+# Last Updated: April 8th, 2023
+# Author: Michael Key
 
-#TODO
+# This program implements a full state space controller for out 
+# MAE 491 Control Application Project : Active Single Axis Rocket 
+# Attitude Controller.
 #
-# add in a way to reset the imu angle via the interface (the start button)
+# It relies on the following modules: 
+#  - control_util.py
+#  - sensor_util.py
+#  - web_util.py
+#
 
-
-# imports
+# imports 
 from control_util import *
 from sensor_util import *
 from web_util import *
-import machine
-import _thread
+
+from machine import Pin, ADC
+import _thread as thread
 import time
 
-# pin defines
-PIN_IMU_SDA = machine.Pin(0, mode=machine.Pin.IN)
-PIN_IMU_SCL = machine.Pin(1, mode=machine.Pin.IN)
+# global variables - these are variables that are shared across threads
+g_lock = thread.allocate_lock() # thread lock
+g_state = "None" # defines the current state of the system (ex: "Start", "Stop", etc.)
+g_controller_pressure_top = 0 # the pressure output from the controller for the top nozzle. 
+g_controller_pressure_bot = 0 # the pressure output from the controller for the bottom nozzle. 
 
-PIN_MOTOR_TOP_STEP = machine.Pin(2, mode=machine.Pin.OUT)
-PIN_MOTOR_TOP_DIR = machine.Pin(3, mode=machine.Pin.OUT)
-PIN_MOTOR_BOT_STEP = machine.Pin(5, mode=machine.Pin.OUT)
-PIN_MOTOR_BOT_DIR = machine.Pin(4, mode=machine.Pin.OUT)
+# calculate K_matrix
 
-PIN_TRANSDUCER_TOP = machine.ADC(26)
-PIN_TRANSDUCER_BOT = machine.ADC(27)
+I = 0.044 # moment of inertia [kg*m^2]
+K = 0.12; # spring constant, [N*m/rad]
+C = 0.2; # rotational damping friction [N*m*s/rad]
+df = 0.180975 # moment arm [m]
 
-PIN_LED = machine.Pin("LED")
+# control matrices
+A = matrix([[0, 1], [-K/I, 0]]) # (2x2)
+B = matrix([[0], [1/I]]) # (2x1)
+Q = matrix([[1.75, 0],[0, 1.08]]) # (2x2)
+R = matrix([[1.5, 0], [0, 1.5]]) # (2x2)
 
-# global variables
-g_state = "None"
-g_pressure_needed_top = 0
-g_pressure_needed_bot = 0
+K_matrix = lqr(A,B,Q,R)
+print(K_matrix)
 
-# set up imu
-i2c = machine.I2C(0, scl=PIN_IMU_SCL, sda=PIN_IMU_SDA, freq=400000)
-imu = bno055(i2c)
+# set up controller
+#controller = fss_controller(K_matrix = matrix([0.9668, 0.8814]), target_state = matrix([deg_to_rad(30), 0.0])) # full state space controller
+#controller = pid_controller(3.0, 5.0, 2.0, deg_to_rad(45), 100) # PID controller
+controller = fss_controller_real(matrix([0.9668, 0.8814]), 0.825, 100) # full state space controller with an integrator
 
-# set up pressure transduces
-transducer_top = transducer(PIN_TRANSDUCER_TOP)
-transducer_bot = transducer(PIN_TRANSDUCER_BOT)
+imu = imu(scl_pin=Pin(0, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
+transducer_top = transducer(ADC(26)) # set up the top pressure transducer
+transducer_bot = transducer(ADC(27)) # set up the bottom pressure transducer
 
-# set up full state space model
-#controller = fss_controller(K_matrix = matrix([0.9668, 0.8814]), target_state = matrix([deg_to_rad(30), 0.0]))
-#controller = pid_controller(3.0, 5.0, 2.0, deg_to_rad(45), 100)
-controller = fss_controller_real(matrix([0.9668, 0.8814]), 0.825, 100)
+network = start_network("MAE 491 Project Interface", "123456789") # open a wireless access point
 
-# start network
-network = start_network("MAE 491 Project Interface", "123456789")
-
-# turn LED on
-PIN_LED.on()
-
-lock = _thread.allocate_lock()
-
-# stepper motor thread
+# the stepper motor thread
 def motors_thread():
     
-    motor_top = stepper_motor(PIN_MOTOR_TOP_STEP, PIN_MOTOR_TOP_DIR)
-    motor_bot = stepper_motor(PIN_MOTOR_BOT_STEP, PIN_MOTOR_BOT_DIR)
+    # define the stepper motors
+    motor_top = stepper_motor(step=Pin(2, mode=Pin.OUT), dir=Pin(3, mode=Pin.OUT))
+    motor_bot = stepper_motor(step=Pin(5, mode=Pin.OUT), dir=Pin(4, mode=Pin.OUT))
     
+    # global variables
+    global g_lock
     global g_state
-    global g_pressure_needed_top
-    global g_pressure_needed_bot
+    global g_controller_pressure_top
+    global g_controller_pressure_bot
     
     while True:
 
-        lock.acquire()
-        state = g_state
-        pressure_needed_top = g_pressure_needed_top
-        pressure_needed_bot = g_pressure_needed_bot
-        lock.release()
+        with g_lock:
+            g_state
         
         if (state == "Start"):
             
-            motor_top.set_target_pressure(pressure_needed_top)
-            motor_bot.set_target_pressure(pressure_needed_bot)
-            
-            #motor_top_error = abs(motor_top.target_step - motor_top.current_step)
-            #motor_bot_error = abs(motor_bot.target_step - motor_bot.current_step)
-            
-            #new_time_top = ((motor_top_error) / (1600)) * (50 - 7) + 7
-            #new_time_bot = ((motor_bot_error) / (1600)) * (50 - 7) + 7
-            
-            #new_time = max(new_time_top, new_time_bot)
-            #new_time = min(7, max(50, new_time))
+            with g_lock:
+                motor_top.set_target_pressure(g_controller_pressure_top)
+                motor_bot.set_target_pressure(g_controller_pressure_bot)
             
             motor_top.update()
             motor_bot.update()
@@ -114,7 +106,7 @@ while True:
     pressure_needed_bot = 0
     log_file = logger("time, angle, angular_vel, pressure_read_top, pressure_read_bot, pressure_needed_top, pressure_needed_bot\n")
     
-    motor_thread = _thread.start_new_thread(motors_thread, ()) # start the motor_thread
+    motor_thread = thread.start_new_thread(motors_thread, ()) # start the motor_thread
     
     # control loop
     while True:
@@ -181,6 +173,5 @@ while True:
         g_pressure_needed_bot = pressure_needed_bot
         lock.release()
         
-    _thread.exit() # stop the motor thread
+    thread.exit() # stop the motor thread
     socket.close() # close when disconnected
-

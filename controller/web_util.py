@@ -1,5 +1,6 @@
 # web_util.py
-# April 5th, 2023
+# Last Updated: April 8th, 2023
+# Author: Michael Key
 
 # imports
 import network

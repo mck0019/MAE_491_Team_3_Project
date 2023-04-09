@@ -1,13 +1,14 @@
 # sensor_util.py
-# April 5th, 2023
+# Last Updated: April 8th, 2023
+# Author: Michael Key
 
 # imports
 import time
 import math
 import struct
+import machine
 
 # imu defines
-
 CONFIG_MODE = 0x00
 ACCONLY_MODE = 0x01
 MAGONLY_MODE = 0x02
@@ -36,63 +37,49 @@ _POWER_REGISTER = 0x3E
 _AXIS_MAP_CONFIG = 0x41
 
 # bno055 imu class
-class bno055:
+class imu:
     
-    def __init__(self, i2c, address=0x28, mode=NDOF_MODE, axis=AXIS_P4):
-        self.i2c = i2c
+    # bno055 constructor
+    def __init__(self, scl_pin, sda_pin, freq=400000, address=0x28, mode=NDOF_MODE, axis=AXIS_P4):
+
+        # set up pins and i2c
+        self.i2c = machine.I2C(0, scl=scl_pin, sda=sda_pin, freq=freq)
         self.address = address
-        if self.read_id() != bytes([0xA0, 0xFB, 0x32, 0x0F]):
-            raise RuntimeError("Failed to find expected ID register values. Check wiring!")
-        self.operation_mode(CONFIG_MODE)
-        self.system_trigger(0x20)  # reset
-        time.sleep_ms(700)
-        self.power_mode(0x00)  # POWER_NORMAL
-        self.axis(axis)
-        self.page(0)
+
+        # read id
+        if self.read_registers(0x00, 4) != bytes([0xA0, 0xFB, 0x32, 0x0F]):
+            print("imu connected incorrectly")
+            return
+        
+        # start up procedure
+        self._write_registers(_MODE_REGISTER, CONFIG_MODE) # set to config mode
+        self._write_registers(0x3F, bytes([0x20])) # reset
+        time.sleep_ms(700) 
+        self._write_registers(_POWER_REGISTER, bytes([0x00])) # power normal
+        self._write_registers(_AXIS_MAP_CONFIG, axis) # set axis
+        self._write_registers(0x3F, bytes([0])) # page
         time.sleep_ms(10)
-        self.operation_mode(mode)
-        self.system_trigger(0x80)  # external oscillator
+        self._write_registers(_MODE_REGISTER, mode) # set mode
+        self._write_registers(0x3F, 0x80) # external oscillator
         time.sleep_ms(200)
+
         print("imu connected!")
 
-    def read_registers(self, register, size=1):
+    # read data from a register
+    def _read_registers(self, register, size=1):
         return self.i2c.readfrom_mem(self.address, register, size)
 
-    def write_registers(self, register, data):
+    # write data to a registor
+    def _write_registers(self, register, data):
         self.i2c.writeto_mem(self.address, register, data)
 
-    def operation_mode(self, mode=None):
-        if mode:
-            self.write_registers(_MODE_REGISTER, bytes([mode]))
-        else:
-            return self.read_registers(_MODE_REGISTER, 1)[0]
+    def reset(self):
+        self.i2c.writeto_mem(self.address, 0x3F, bytes([0x20]))
 
-    def system_trigger(self, data):
-        self.write_registers(0x3F, bytes([data]))
-
-    def power_mode(self, mode=None):
-        if mode:
-            self.write_registers(_POWER_REGISTER, bytes([mode]))
-        else:
-            return self.read_registers(_POWER_REGISTER, 1)
-
-    def page(self, num=None):
-        if num:
-            self.write_registers(0x3F, bytes([num]))
-        else:
-            self.read_registers(0x3F)
+    # sensor readings
 
     def temperature(self):
-        return self.read_registers(0x34, 1)[0]
-
-    def read_id(self):
-        return self.read_registers(0x00, 4)
-
-    def axis(self, placement=None):
-        if placement:
-            self.write_registers(_AXIS_MAP_CONFIG, placement)
-        else:
-            return self.read_registers(_AXIS_MAP_CONFIG, 2)
+        return self._read_registers(0x34, 1)[0]
 
     def quaternion(self):
         data = struct.unpack("<hhhh", self.read_registers(0x20, 8))

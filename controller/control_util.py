@@ -1,20 +1,21 @@
 # control_util.py
-# April 5th, 2023
+# Last Updated: April 8th, 2023
+# Authors: Michael Key, Ian Holbrook, John Thorne
 
 # imports
 import math
 
-# angle functions
-def deg_to_rad(degrees):
-    return degrees * (math.pi / 180.0)
-
-def rad_to_deg(radians):
-    return radians * (180.0 / math.pi)
-
-# math functions
+# remaps a value from one range to a new range
 def remap(value, old_min, old_max, new_min, new_max):
     return ((value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
 
+# convertes degrees to radians
+def deg_to_rad(degrees):
+    return degrees * (math.pi / 180.0)
+
+# converts radians to degrees
+def rad_to_deg(radians):
+    return radians * (180.0 / math.pi)
 
 # matrix class
 class matrix:
@@ -109,6 +110,12 @@ class matrix:
         else:
             raise TypeError("Multiplication not supported between matrix and " + str(type(other)))
     
+    # matrix transpose 
+    def transpose(self):
+        # create a new matrix with swapped rows and columns
+        transposed_data = [[self.data[j][i] for j in range(self.rows)] for i in range(self.cols)]
+        return matrix(transposed_data)
+
     # matrix inverse
     def inverse(self):
         if self.rows != self.cols:
@@ -141,6 +148,21 @@ class matrix:
         inverse_matrix = matrix(inverse_data)
         return inverse_matrix
     
+    # isclose method
+    def isclose(self, other, rel_tol=1e-9, abs_tol=0.0):
+        # check that other is a matrix with the same dimensions as self
+        if not isinstance(other, matrix) or self.rows != other.rows or self.cols != other.cols:
+            return False
+        
+        # check that the absolute difference between corresponding elements is within tolerances
+        for i in range(self.rows):
+            for j in range(self.cols):
+                if not math.isclose(self.data[i][j], other.data[i][j], rel_tol=rel_tol, abs_tol=abs_tol):
+                    return False
+        
+        # if all element pairs pass the test, the matrices are close enough
+        return True
+
     # matrix reduced row echelon form
     def rref(self):
         A = self.data
@@ -168,15 +190,37 @@ class matrix:
             lead += 1
         return matrix(A)
 
+# linear-quadratic regulator
+def lqr(A, B, Q, R):
+    P = Q
+    max_iter = 100
+    eps = 1e-6
+    for i in range(max_iter):
+        # P_new = Q + A.transpose() * P * A - A.transpose() * P * B * (R + B.transpose() * P * B).inverse() * B.transpose() * P * A
+
+        P_new = (P.transpose() * A * P) + Q
+        P_new = P_new - X * B * (B.transpose() * X * B + R).inverse() * B.transpose() * X * A
+        
+        if P.isclose(P_new, rel_tol=eps):
+            P = P_new
+            break
+        P = P_new
+
+    # Compute the optimal control gain
+    K = (R + B.transpose() * P * B).inverse() * B.transpose() * P * A
+
+
+# full state space controller
 class fss_controller:
     
+    # controller constructor
     def __init__(self, K_matrix, target_state):
         self.K_matrix = K_matrix # k matrix (1x2)
         self.r_t = target_state # target state (2x1)
         
-        self.min_thrust = 0.05
-        self.max_thrust = 2.5
-        self.f_avg = (self.min_thrust + self.max_thrust) / 2
+        self.min_thrust = 0.05 # minimum force
+        self.max_thrust = 2.5 # maximum force
+        self.f_avg = (self.min_thrust + self.max_thrust) / 2 # force average
         
         self.I = 0.044 # moment of inertia - kg*m^2
         self.K = 0.12 # spring constant N*m/rad
@@ -198,7 +242,6 @@ class fss_controller:
         p_bot = max(self.min_thrust, min(self.max_thrust, thrusts[1][2])) * 22.5537 - 3.1155 # pressure required bottom
         
         return (p_top, p_bot)
-    
     
 class fss_controller_real:
     
