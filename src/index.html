@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MAE 491 Interface</title>
+</head>
+<link rel="icon" href="data:,">
+
+<style>
+    * {
+        font-family: 'Consolas';
+        font-size: 1.25rem;
+        color: rgb(255, 255, 255);
+        text-shadow: 0.07rem 0.1rem black;
+    }
+
+    body {
+        background: #212227;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    .container {
+        width: 80vw;
+        max-width: 100vh;
+        height: 60vh;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: 5% 10% 10% 10% 25%;
+        grid-row-gap: 3vh;
+        grid-column-gap: 2vh;
+    }
+
+    .title {
+        grid-column: 1 /span 4;
+        grid-row: 1;
+        font-size: 2rem;
+        text-align: center;
+    }
+
+    .panel {
+        background-color: #1c1c20;
+        box-shadow: 0 16px #141416;
+        border-radius: 1.5vh;
+    }
+
+    /* input panel */
+    .input {
+        grid-column: 1 /span 3;
+        grid-row: 2 /span 3;
+        padding: 1rem;
+    }
+
+    .test_selection_select {
+        background-color: #2d2f36;
+        border: none;
+        outline: none;
+        border-radius: 0.5vh;
+    }
+
+    .test_selection::before {
+        content: 'Test Selection: ';
+    }
+
+    /* test controller panel */
+
+    .test_controller_panel {
+        display: block;
+        margin-top: 1rem;
+        width: 100%;
+        height: 80%;
+    }
+
+    .target_angle_input {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .target_angle_input::before {
+        content: 'Target Angle: ';
+    }
+
+    .target_angle_slider {
+        background: #2d2f36;
+        -webkit-appearance: none;
+        appearance: none;
+        outline: none;
+        direction: rtl;
+        flex: 1;
+        height: 15px;
+        border-radius: 0.5vh;
+    }
+
+    .target_angle_slider::-webkit-slider-thumb {
+        background: #516097;
+        -webkit-appearance: none;
+        appearance: none;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .target_angle_text_input {
+        background-color: #2d2f36;
+        border: none;
+        border-radius: 0.5vh;
+        text-align: center;
+    }
+
+    .target_angle_text_input::-webkit-outer-spin-button,
+    .target_angle_text_input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+    }
+
+    /* sensor panel */
+
+    .test_sensor_panel {
+        display: none;
+        margin-top: 1rem;
+        width: 100%;
+        height: 80%;
+    }
+
+    .test_safety_panel {
+        display: none;
+        margin-top: 1rem;
+        width: 100%;
+        height: 80%;
+    }
+
+    /* readings panel */
+    .readings {
+        grid-column: 1 /span 2;
+        grid-row: 5 /span 3;
+        padding: 1rem;
+        text-align: center;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: 15% repeat(2, 1fr);
+    }
+
+    .readings_title {
+        grid-column: 1 /span 2;
+    }
+
+    .readings_value {
+        position: relative;
+        font-size: 1.5rem;
+        top: 15%;
+    }
+
+    /* status panel */
+    .status {
+        grid-column: 3 /span 2;
+        grid-row: 5 /span 3;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .led {}
+
+
+    /* buttons */
+
+    .button {
+        border: none;
+        cursor: pointer;
+    }
+
+    .start {
+        background-color: #62AD50;
+        box-shadow: 0 16px #407033;
+    }
+
+    .start:active {
+        transform: translateY(8px);
+        box-shadow: 0 8px #407033;
+    }
+
+    .stop {
+        background-color: #A84032;
+        box-shadow: 0 16px #68261E;
+    }
+
+    .stop:active {
+        transform: translateY(8px);
+        box-shadow: 0 8px #68261E;
+    }
+
+    .download {
+        background-color: #CFA739;
+        box-shadow: 0 16px #8A6F26;
+    }
+
+    .download:active {
+        transform: translateY(8px);
+        box-shadow: 0 8px #8A6F26;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="title">MAE 491 Interface</div>
+
+        <!-- input panel -->
+        <div class="panel input">
+
+            <div class="test_selection">
+                <select class="test_selection_select" id="test_selection">
+                    <option value="controller_test">Controller</option>
+                    <option value="sensor_test">Sensor</option>
+                    <option value="safety_test">Safety</option>
+                </select>
+            </div>
+
+            <div class="test_controller_panel" id="test_controller_panel">
+
+                <div class="target_angle_input">
+                    <input class="target_angle_slider" id="target_angle_slider" type="range" value="0" min="-90"
+                        max="90" oninput="update_target_angle(this.value)">
+                    <input class="target_angle_text_input" id="target_angle_text_input" type="number" value="0"
+                        min="-90" max="90" oninput="update_target_angle(this.value)">
+                </div>
+
+            </div>
+
+            <div class="test_sensor_panel" id="test_sensor_panel"></div>
+
+            <div class="test_safety_panel" id="test_safety_panel"></div>
+
+
+        </div>
+
+
+        <div class="panel readings">
+            <div class="readings_title">Readings</div>
+
+            <div class="readings_angle">
+                <div>Angle:</div>
+                <div class="readings_value">-</div>
+            </div>
+
+            <div class="readings_angular_velocity">
+                <div>Angular Velocity:</div>
+                <div class="readings_value">-</div>
+            </div>
+
+            <div class="readings_transducer_top">
+                <div>Pressure Top:</div>
+                <div class="readings_value">-</div>
+            </div>
+
+            <div class="readings_transducer_bot">
+                <div>Pressure Bottom:</div>
+                <div class="readings_value">-</div>
+            </div>
+
+
+        </div>
+
+        <div class="panel status">
+            <div class="status_title">Status</div>
+            <div class="led connection" id="status_connected"> </div>
+            <div class="led running" id="status_running"> </div>
+        </div>
+
+        <button class="panel button start" onclick="on_start_button()">Start</button>
+        <button class="panel button stop" onclick="on_stop_button()">Stop</button>
+        <button class="panel button download" onclick="on_download_button()">Download</button>
+
+    </div>
+
+    <script>
+
+        // elements 
+        var socket = new WebSocket('ws://192.168.4.1:80/ws');
+        const test_selection = document.getElementById('test_selection');
+
+        const test_controller_panel = document.getElementById('test_controller_panel');
+        const test_sensor_panel = document.getElementById('test_sensor_panel');
+        const test_safety_panel = document.getElementById('test_safety_panel');
+
+        const target_angle_text_input = document.getElementById('target_angle_text_input');
+        const target_angle_slider_input = document.getElementById('target_angle_slider');
+
+
+        function send_msg(message) {
+            if (socket.readyState === socket.OPEN) { 
+                socket.send(message); 
+            }
+        }
+
+        function on_start_button() {
+            send_msg("cmd: Start; arg: " + String(target_angle_text_input.value));
+        }
+
+        function on_stop_button() {
+            send_msg("cmd: Stop")
+        }
+
+        function on_download_button() {
+            send_msg("cmd: Download")
+        }
+
+        socket.addEventListener('message', async event => {
+
+            // parse message
+            str = event.data;
+            const pairs = str.split(";");
+            const dict = {};
+            pairs.forEach(pair => {
+                const [key, value] = pair.trim().split(": ");
+                dict[key] = value;
+            });
+
+            // handle message
+            if (dict["cmd"] === "Update") {
+                
+            } else if (dict["cmd"] === "Download") {
+
+                // create download link for blob
+                const download_link = document.createElement('a');
+                download_link.setAttribute('href', URL.createObjectURL(new Blob([dict["data"]], { type: 'text/csv' })));
+                download_link.setAttribute('download', 'data.csv');
+                document.body.appendChild(download_link);
+                download_link.click();
+            }
+        });
+
+        // update every 100 ms
+        setInterval(function () {
+            send_msg("cmd: Update;");
+        }, 100);
+
+        // input panels
+        const panels = {
+            controller_test: test_controller_panel,
+            sensor_test: test_sensor_panel,
+            safety_test: test_safety_panel
+        };
+
+        test_selection.addEventListener('change', () => {
+            Object.entries(panels).forEach(([key, panel]) => {
+                panel.style.display = key === test_selection.value ? 'block' : 'none';
+            });
+        });
+
+        function update_target_angle(val) {
+            val = Math.min(Math.max(val, -90), 90);
+            target_angle_text_input.value = val;
+            target_angle_slider_input.value = val;
+        }
+
+    </script>
+</body>
+
+</html>

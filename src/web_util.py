@@ -42,19 +42,6 @@ def serve_webpage():
     with open('index.html', 'r') as f:
         html_data = f.read()
     
-    #conn.send("HTTP/1.1 200 OK\r\n")
-    #conn.send("Content-Type: text/html\r\n")
-    #conn.send("Content-Length: {}\r\n".format(len(html_data)))
-    #conn.send("\r\n")
-    
-    #chunk_size = 64
-    #for i in range(0, len(html_data), chunk_size):
-    #    chunk = html_data[i:i+chunk_size]
-    #    conn.send(chunk.encode())
-    #conn.close()
-    
-    print(len(html_data))
-    
     conn.send("HTTP/1.1 200 OK\r\n")
     conn.send("Content-Type: text/html\r\n")
     conn.send("Content-Length: {}\r\n".format(len(html_data)))

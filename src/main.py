@@ -41,7 +41,7 @@ K_matrix = lqr(A,B,Q,R)
 controller = fss_controller_w_int(K=matrix([0.9847, 0.8981]), K_i=0.5) # full state space controller with an integrator
 
 # set up sensors
-imu = imu(scl_pin=Pin(1, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
+#imu = imu(scl_pin=Pin(1, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
 transducer_top = transducer(ADC(26)) # set up the top pressure transducer
 transducer_bot = transducer(ADC(27)) # set up the bottom pressure transducer
 
@@ -120,7 +120,7 @@ while True:
         # parse message
         message = str(data.decode())
         result = {}
-        split_str = message.split(", ")
+        split_str = message.split("; ")
         for item in split_str:
             key, value = item.split(": ")
             result[key.strip()] = value.strip()
@@ -128,13 +128,15 @@ while True:
         # get command
         if (result["cmd"] == "Start"):
             state = "Start"
-            imu.reset()
+            #imu.reset()
             controller.set_target_angle(float(result["arg"]))
             log_file = logger("time, angle, angular_vel, pressure_read_top, pressure_read_bot, pressure_needed_top, pressure_needed_bot, err, cumul_err\n")
             start_time = time.ticks_ms()
+            print("Start")
         elif (result["cmd"] == "Stop"):
             state = "Stop"
             log_file.close()
+            print("Stop")
         elif (result["cmd"] == "Download"):
             state = "Download"
             print("Download")
@@ -153,13 +155,14 @@ while True:
             # read sensor data
             pressure_read_top = transducer_top.read() # top pressure transducer [PSI]
             pressure_read_bot = transducer_bot.read() # bottom pressure transducer [PSI]
-            angle = -imu.euler()[0] # IMU angle [degrees]
-            angular_vel = imu.gyroscope()[2] # IMU angular velocity [rad/s]
+            #angle = -imu.euler()[0] # IMU angle [degrees]
+            #angular_vel = imu.gyroscope()[2] # IMU angular velocity [rad/s]
+            angle = 45.0;
+            angular_vel = 2.0;
             
             # wrap the angle value to -180:180 range
             if angle < -180:
                 angle += 360
-            
             
             # convert to radians
             theta = deg_to_rad(angle)
@@ -180,7 +183,11 @@ while True:
             log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot, controller_pressure_top, controller_pressure_bot, controller.err, controller.cumul_err)
             
             # send data to interface
-            update_data = "cmd: Update; angle: " + str(angle) + "; velocity: " + str(rad_to_deg(angular_vel))
+            update_data = "cmd: Update;"
+            update_data += "angle: " + str(angle) + ";"
+            update_data += "velocity: " + str(rad_to_deg(angular_vel)) + ";"
+            update_data += "pressure_top: " + str(pressure_read_top) + ";"
+            update_data += "pressure_bot: " + str(pressure_read_bot) + ";"
             socket.send(update_data.encode())
             
     
