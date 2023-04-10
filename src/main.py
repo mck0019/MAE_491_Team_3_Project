@@ -28,7 +28,7 @@ C = 0.2; # rotational damping friction [N*m*s/rad]
 df = 0.180975 # moment arm [m]
 
 # control matrices
-A = matrix([[0, 1], [-K/I, 0]]) # (2x2)
+A = matrix([[0, 1], [-K/I, -C/I]]) # (2x2)
 B = matrix([[0], [1/I]]) # (2x1)
 Q = matrix([[1.75, 0],[0, 1.08]]) # (2x2)
 R = matrix([1.5]) # (1x1)
@@ -41,7 +41,7 @@ K_matrix = lqr(A,B,Q,R)
 controller = fss_controller_w_int(K=matrix([0.9847, 0.8981]), K_i=0.5) # full state space controller with an integrator
 
 # set up sensors
-#imu = imu(scl_pin=Pin(1, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
+imu = imu(scl_pin=Pin(1, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
 transducer_top = transducer(ADC(26)) # set up the top pressure transducer
 transducer_bot = transducer(ADC(27)) # set up the bottom pressure transducer
 
@@ -155,10 +155,10 @@ while True:
             # read sensor data
             pressure_read_top = transducer_top.read() # top pressure transducer [PSI]
             pressure_read_bot = transducer_bot.read() # bottom pressure transducer [PSI]
-            #angle = -imu.euler()[0] # IMU angle [degrees]
-            #angular_vel = imu.gyroscope()[2] # IMU angular velocity [rad/s]
-            angle = 45.0;
-            angular_vel = 2.0;
+            angle = -imu.euler()[0] # IMU angle [degrees]
+            angular_vel = imu.gyroscope()[2] # IMU angular velocity [rad/s]
+            #angle = 45.0;
+            #angular_vel = 2.0;
             
             # wrap the angle value to -180:180 range
             if angle < -180:
