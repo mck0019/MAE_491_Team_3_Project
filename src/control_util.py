@@ -310,8 +310,10 @@ class fss_controller_w_int:
         
         x = matrix([ [0.0, theta_dot], [theta, 0.0] ]) # state (2x2)
         cmd = self.x0 - self.K * x # target_state - k_matrix * state (1x2)
-        F = matrix([[0.5, 0.5, self.force_avg], [0.180975, -0.180975, cmd[0][0]]])
-        T = F.rref() # required thrust of the system
+        control_torque = cmd[0][0]
+        
+        #F = matrix([[0.5, 0.5, self.force_avg], [0.180975, -0.180975, cmd[0][0]]])
+        #T = F.rref() # required thrust of the system
         
         self.err = self.x0[0][0] - theta # compute error between desired and current angle
         
@@ -325,8 +327,8 @@ class fss_controller_w_int:
         if (self.err > 0 and self.last_err < 0) or (self.err < 0 and self.last_err > 0) or (abs(self.err) < deg_to_rad(2)):
             self.cumul_err = 0
         
-        F_top = T[0][2] - self.K_i * self.cumul_err
-        F_bot = T[1][2] + self.K_i * self.cumul_err
+        F_top = self.f_avg - (control_torque/(2*self.df)) - self.K_i * self.cumul_err # LEFT nozzle
+        F_bot = self.f_avg + (control_torque/(2*self.df)) + self.K_i * self.cumul_err # RIGHT nozzle
         
         p_top = max(self.min_thrust, min(self.max_thrust, F_top)) * 22.5537 - 3.1155 # pressure required top
         p_bot = max(self.min_thrust, min(self.max_thrust, F_bot)) * 22.5537 - 3.1155 # pressure required bottom
