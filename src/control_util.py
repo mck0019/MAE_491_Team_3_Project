@@ -244,6 +244,7 @@ def lqr(A, B, Q, R):
         
     return K
 
+
 # full state space controller
 class fss_controller:
     
@@ -287,6 +288,10 @@ class fss_controller_w_int:
         self.x0 = matrix([0.0, 0.0]) # target state (1x2)
         self.K_i = K_i # integrator gain coefficient
         self.first_iter = True # first iteration flag
+        
+        self.min_thrust = 0.05 # minimum force
+        self.max_thrust = 2.5 # maximum force
+        self.f_avg = (self.min_thrust + self.max_thrust) / 2 # force average
         
         self.cumul_err = 0 # cumulative error
         self.curr_err = 0 # current error
@@ -333,13 +338,18 @@ class fss_controller_w_int:
 class pid_controller:
     
     # PID controller constructor 
-    def __init__(self,K_p,K_i,K_d,x0):
+    def __init__(self,K_p,K_i,K_d):
         self.K_p = K_p # proportional gain coefficient
         self.K_i = K_i # integral gain coefficient
         self.K_d = K_d # derivative gain coefficient
-        self.x0 = x0 # target angle [rad]
+        self.x0 = 0 # initial state
         
         self.first_iter = True # first interaction flag
+        
+        self.min_thrust = 0.05 # minimum force
+        self.max_thrust = 2.5 # maximum force
+        self.f_avg = (self.min_thrust + self.max_thrust) / 2 # force average
+        self.df = 0.180975 # moment arm from center of rotation to nozzle, in meters
         
         self.cumul_err = 0 # cumulative error
         self.d_err = 0 # derivative error
@@ -347,11 +357,11 @@ class pid_controller:
         
     # set the target angle
     def set_target_angle(self, value):
-        self.x0 = value # set desired angle
+        self.x0 = value # set desired angle [rad]
         
     # update function
     def update(self, theta):
-        err = (self.x0 - theta) # compute error between desired and current angle
+        err = (self.x0 - theta) # compute error between desired and current angle [rad]
 
         if self.first_iter: # if we're on the first loop, derivative and integral errors are undefined
             self.cumul_err = 0 # set both equal to zero
@@ -364,6 +374,17 @@ class pid_controller:
         control_torque = (self.K_p * err) + (self.K_i * self.cumul_err) + (self.K_d * self.d_err) # compute control signal
         
         # TODO: Figure out conversion between control torque and output pressures
+        
+        # Took a first pass at this. not sure why John approached it the way he did (need to talk to him about it) but I just solved a
+        # system of equations simultaneously to find the force formulas, which are below. -Ian
+        # the two equations are Tnet = Fbot*df - Ftop*df and Favg = (Ftop + Fbot)/2. This is two eqns in two unknowns, so it has a unique solution
+        # Tnet is the control torque (necessary net torque acting on the system) and Favg is the average force setpoint.
+        
+        F_top = self.f_avg - (control_torque/(2*self.df)) # LEFT nozzle
+        F_bot = self.f_avg + (control_torque/(2*self.df)) # RIGHT nozzle
+        
+        p_top = max(self.min_thrust, min(self.max_thrust, F_top)) * 22.5537 - 3.1155 # pressure required top
+        p_bot = max(self.min_thrust, min(self.max_thrust, F_bot)) * 22.5537 - 3.1155 # pressure required bottom
         
         self.lastErr = err # set last error equal to this loop's error
         
