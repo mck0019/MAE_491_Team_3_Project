@@ -279,7 +279,7 @@ class fss_controller:
         return (p_top, p_bot)
     
     
-# full state space controller with an integrator 
+# full state feedback controller with an integrator 
 class fss_controller_w_int:
     
     # controller constructor
@@ -292,6 +292,7 @@ class fss_controller_w_int:
         self.min_thrust = 0.05 # minimum force
         self.max_thrust = 2.5 # maximum force
         self.f_avg = (self.min_thrust + self.max_thrust) / 2 # force average
+        self.df = 0.180975 # moment arm from center of rotation to nozzle, in meters
         
         self.cumul_err = 0 # cumulative error
         self.curr_err = 0 # current error
@@ -311,6 +312,13 @@ class fss_controller_w_int:
         x = matrix([ [0.0, theta_dot], [theta, 0.0] ]) # state (2x2)
         cmd = self.x0 - self.K * x # target_state - k_matrix * state (1x2)
         control_torque = cmd[0][0]
+        
+        max_control_torque = (self.max_thrust - self.min_thrust)*self.df
+        
+        if control_torque > max_control_torque:
+            control_torque = max_control_torque
+        elif control_torque < -max_control_torque:
+            control_torque = -max_control_torque
         
         #F = matrix([[0.5, 0.5, self.force_avg], [0.180975, -0.180975, cmd[0][0]]])
         #T = F.rref() # required thrust of the system
@@ -375,12 +383,12 @@ class pid_controller:
         
         control_torque = (self.K_p * err) + (self.K_i * self.cumul_err) + (self.K_d * self.d_err) # compute control signal
         
-        # TODO: Figure out conversion between control torque and output pressures
+        max_control_torque = (self.max_thrust - self.min_thrust)*self.df
         
-        # Took a first pass at this. not sure why John approached it the way he did (need to talk to him about it) but I just solved a
-        # system of equations simultaneously to find the force formulas, which are below. -Ian
-        # the two equations are Tnet = Fbot*df - Ftop*df and Favg = (Ftop + Fbot)/2. This is two eqns in two unknowns, so it has a unique solution
-        # Tnet is the control torque (necessary net torque acting on the system) and Favg is the average force setpoint.
+        if control_torque > max_control_torque:
+            control_torque = max_control_torque
+        elif control_torque < -max_control_torque:
+            control_torque = -max_control_torque
         
         F_top = self.f_avg - (control_torque/(2*self.df)) # LEFT nozzle
         F_bot = self.f_avg + (control_torque/(2*self.df)) # RIGHT nozzle
