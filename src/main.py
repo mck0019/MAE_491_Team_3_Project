@@ -51,8 +51,6 @@ g_state = "None" # defines the current state of the system (ex: "Start", "Stop",
 g_controller_pressure_top = 0 # the pressure output from the controller for the top nozzle. 
 g_controller_pressure_bot = 0 # the pressure output from the controller for the bottom nozzle. 
 
-time.sleep(1)
-
 # the stepper motor thread
 def motors_thread(lock):
     
@@ -188,6 +186,32 @@ while True:
             
             # write to log file
             log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot)
+            
+            # send data to interface
+            update_data = "cmd: Update;"
+            update_data += "angle: " + str(angle) + ";"
+            update_data += "velocity: " + str(rad_to_deg(angular_vel)) + ";"
+            update_data += "pressure_top: " + str(controller_pressure_top) + ";"
+            update_data += "pressure_bot: " + str(controller_pressure_bot) + ";"
+            socket.send(update_data.encode())
+    
+        if state == "Start_Sensor":
+            # read sensor data
+            pressure_read_top = transducer_top.read() # top pressure transducer [PSI]
+            pressure_read_bot = transducer_bot.read() # bottom pressure transducer [PSI]
+            angle = -imu.euler()[0] # IMU angle [degrees]
+            angular_vel = imu.gyroscope()[2] # IMU angular velocity [rad/s]
+            
+            # wrap the angle value to -180:180 range
+            if angle < -180:
+                angle += 360
+                
+            # calculate timestep
+            current_time = time.ticks_ms()
+            elapsed_time = time.ticks_diff(current_time, start_time)
+            
+            # write to log file
+            log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot)    
             
             # send data to interface
             update_data = "cmd: Update;"
