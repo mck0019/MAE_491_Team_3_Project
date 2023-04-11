@@ -167,6 +167,25 @@ class web_socket:
         # send the message
         self.s.send(payload)
     
+    def sendall(self, message):
+        # write header
+        payload = bytearray()
+        payload.append(0x80 | 1)
+        
+        if len(message) < 126:
+            payload.append(len(message))
+        elif len(message) < (1 << 16):
+            payload.append(126)
+            payload.extend(len(message).to_bytes(2, 'big'))
+        else:
+            payload.append(127)
+            payload.extend(len(message).to_bytes(8, 'big'))
+            
+        payload.extend(message)
+        
+        # send the message
+        self.s.sendall(payload)
+    
     # close the socket
     def close(self):
         self.s.close()

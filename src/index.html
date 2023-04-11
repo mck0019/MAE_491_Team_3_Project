@@ -244,22 +244,22 @@
 
             <div class="readings_angle">
                 <div>Angle:</div>
-                <div class="readings_value">-</div>
+                <div class="readings_value" id="readings_angle">-</div>
             </div>
 
             <div class="readings_angular_velocity">
                 <div>Angular Velocity:</div>
-                <div class="readings_value">-</div>
+                <div class="readings_value" id="readings_angular_vel">-</div>
             </div>
 
             <div class="readings_transducer_top">
                 <div>Pressure Top:</div>
-                <div class="readings_value">-</div>
+                <div class="readings_value" id="readings_pressure_top">-</div>
             </div>
 
             <div class="readings_transducer_bot">
                 <div>Pressure Bottom:</div>
-                <div class="readings_value">-</div>
+                <div class="readings_value" id="readings_pressure_bot">-</div>
             </div>
 
 
@@ -290,7 +290,11 @@
         const target_angle_text_input = document.getElementById('target_angle_text_input');
         const target_angle_slider_input = document.getElementById('target_angle_slider');
 
-
+        const readings_angle = document.getElementById('readings_angle');
+        const readings_angular_vel = document.getElementById('readings_angular_vel');
+        const readings_pressure_top = document.getElementById('readings_pressure_top');
+        const readings_pressure_bot = document.getElementById('readings_pressure_bot');
+        
         function send_msg(message) {
             if (socket.readyState === socket.OPEN) { 
                 socket.send(message); 
@@ -322,7 +326,10 @@
 
             // handle message
             if (dict["cmd"] === "Update") {
-                
+                readings_angle.innerHTML = parseFloat(dict["angle"]).toFixed(2);
+                readings_angular_vel.innerHTML = parseFloat(dict["velocity"]).toFixed(2);
+                readings_pressure_top.innerHTML = parseFloat(dict["pressure_top"]).toFixed(2);
+                readings_pressure_bot.innerHTML = parseFloat(dict["pressure_bot"]).toFixed(2);
             } else if (dict["cmd"] === "Download") {
 
                 // create download link for blob

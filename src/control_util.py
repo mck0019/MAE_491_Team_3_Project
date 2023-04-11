@@ -348,7 +348,7 @@ class fss_controller_w_int:
 class pid_controller:
     
     # PID controller constructor 
-    def __init__(self,K_p,K_i,K_d):
+    def __init__(self, K_p, K_i, K_d):
         self.K_p = K_p # proportional gain coefficient
         self.K_i = K_i # integral gain coefficient
         self.K_d = K_d # derivative gain coefficient
@@ -364,25 +364,28 @@ class pid_controller:
         self.cumul_err = 0 # cumulative error
         self.d_err = 0 # derivative error
         self.last_err = 0 # last error
+        self.err = 0
         
     # set the target angle
     def set_target_angle(self, value):
-        self.x0 = value # set desired angle [rad]
+        self.x0 = deg_to_rad(value) # set desired angle [rad]
         
     # update function
     def update(self, theta):
-        err = (self.x0 - theta) # compute error between desired and current angle [rad]
+        self.err = (self.x0 - theta) # compute error between desired and current angle [rad]
 
         if self.first_iter: # if we're on the first loop, derivative and integral errors are undefined
             self.cumul_err = 0 # set both equal to zero
             self.d_err = 0
             self.first_iter = False # update flag
         else: # otherwise compute integral and derivative errors as normal
-            self.cumul_err += err * CONTROLLER_TIME_STEP # rectangular approximation of integral error for this update
-            self.d_err = (err - self.last_err) / CONTROLLER_TIME_STEP # first order finite difference approximation of derivative error
+            self.cumul_err += self.err * CONTROLLER_TIME_STEP # rectangular approximation of integral error for this update
+            self.d_err = (self.err - self.last_err) / CONTROLLER_TIME_STEP # first order finite difference approximation of derivative error
         
-        control_torque = (self.K_p * err) + (self.K_i * self.cumul_err) + (self.K_d * self.d_err) # compute control signal
+        if (self.err > 0 and self.last_err < 0) or (self.err < 0 and self.last_err > 0) or (abs(self.err) < deg_to_rad(2)) or (self.d_err > 0.4):
+            self.cumul_err = 0
         
+        control_torque = (self.K_p * self.err) + (self.K_i * self.cumul_err) + (self.K_d * self.d_err) # compute control signal
         max_control_torque = (self.max_thrust - self.min_thrust)*self.df
         
         if control_torque > max_control_torque:
@@ -396,9 +399,9 @@ class pid_controller:
         p_top = max(self.min_thrust, min(self.max_thrust, F_top)) * 22.5537 - 3.1155 # pressure required top
         p_bot = max(self.min_thrust, min(self.max_thrust, F_bot)) * 22.5537 - 3.1155 # pressure required bottom
         
-        self.lastErr = err # set last error equal to this loop's error
+        self.last_err = self.err # set last error equal to this loop's error
         
-        return # return required nozzle pressures
+        return p_top, p_bot# return required nozzle pressures
 
 class logger:
     
