@@ -1,5 +1,5 @@
 # control_util.py
-# Last Updated: April 9th, 2023
+# Last Updated: April 10th, 2023
 # Authors: Michael Key, Ian Holbrook, John Thorne
 
 # imports
@@ -357,7 +357,7 @@ class pid_controller:
         self.first_iter = True # first interaction flag
         
         self.min_thrust = 0.05 # minimum force
-        self.max_thrust = 2.5 # maximum force
+        self.max_thrust = 2.7 # maximum force
         self.f_avg = (self.min_thrust + self.max_thrust) / 2 # force average
         self.df = 0.180975 # moment arm from center of rotation to nozzle, in meters
         

@@ -28,7 +28,7 @@ C = 0.2; # rotational damping friction [N*m*s/rad]
 df = 0.180975 # moment arm [m]
 
 # control matrices
-A = matrix([[0, 1], [-K/I, -C/I]]) # (2x2)
+A = matrix([[0, 1], [-K/I, 0]]) # (2x2)
 B = matrix([[0], [1/I]]) # (2x1)
 Q = matrix([[1.75, 0],[0, 1.08]]) # (2x2)
 R = matrix([1.5]) # (1x1)
@@ -36,9 +36,7 @@ R = matrix([1.5]) # (1x1)
 K_matrix = lqr(A,B,Q,R)
 
 # set up controller
-#controller = fss_controller(K_matrix = matrix([0.9668, 0.8814]), target_state = matrix([deg_to_rad(30), 0.0])) # full state space controller
 controller = pid_controller(1.1, 0.065, 2.5) # PID controller
-#controller = fss_controller_w_int(K=matrix([0.9847, 0.8981]), K_i=0.005) # full state space controller with an integrator
 
 # set up sensors
 imu = imu(scl_pin=Pin(1, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
@@ -142,10 +140,10 @@ while True:
         elif (result["cmd"] == "Download"):
             state = "Download"
             print("Download")
-            with open("log_file.csv", 'r') as f:
-                log_data = f.read()
+            f = open("log_file.csv", 'r')
+            log_data = f.read()
+            f.close()
             download_data = "cmd: Download; data: " + str(log_data)
-            print(len(download_data))
             socket.sendall(download_data.encode())
         
         with lock:
@@ -186,8 +184,8 @@ while True:
             update_data = "cmd: Update;"
             update_data += "angle: " + str(angle) + ";"
             update_data += "velocity: " + str(rad_to_deg(angular_vel)) + ";"
-            update_data += "pressure_top: " + str(pressure_read_top) + ";"
-            update_data += "pressure_bot: " + str(pressure_read_bot) + ";"
+            update_data += "pressure_top: " + str(controller_pressure_top) + ";"
+            update_data += "pressure_bot: " + str(controller_pressure_bot) + ";"
             socket.send(update_data.encode())
     
     # close the thread
