@@ -28,7 +28,7 @@ C = 0.2; # rotational damping friction [N*m*s/rad]
 df = 0.180975 # moment arm [m]
 
 # control matrices
-A = matrix([[0, 1], [-K/I, 0]]) # (2x2)
+A = matrix([[0, 1], [-K/I, -C/I]]) # (2x2)
 B = matrix([[0], [1/I]]) # (2x1)
 Q = matrix([[1.75, 0],[0, 1.08]]) # (2x2)
 R = matrix([1.5]) # (1x1)
