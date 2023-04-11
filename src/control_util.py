@@ -369,6 +369,11 @@ class pid_controller:
     # set the target angle
     def set_target_angle(self, value):
         self.x0 = deg_to_rad(value) # set desired angle [rad]
+       
+    def set_gains(self, K_p, K_i, K_d):
+        self.K_p = K_p
+        self.K_i = K_i
+        self.K_d = K_d
         
     # update function
     def update(self, theta):

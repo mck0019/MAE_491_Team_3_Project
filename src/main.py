@@ -2,8 +2,8 @@
 # Last Updated: April 10th, 2023
 # Author: Michael Key
 
-# This program implements a full state space controller for out 
-# MAE 491 Control Application Project : Active Single Axis Rocket 
+# This program implements a PID controller for our MAE 491 
+# Control Application Project : Active Single Axis Rocket 
 # Attitude Controller.
 #
 # It relies on the following modules: 
@@ -75,7 +75,7 @@ def motors_thread(lock):
         if (state == "End"):
             thread.exit()
         
-        if (state == "Start"):
+        if (state == "Start_Test"):
             motor_top.set_target_pressure(controller_pressure_top)
             motor_bot.set_target_pressure(controller_pressure_bot)
             
@@ -119,38 +119,47 @@ while True:
         
         # parse message
         message = str(data.decode())
-        result = {}
+        arguments = {}
         split_str = message.split("; ")
         for item in split_str:
             key, value = item.split(": ")
-            result[key.strip()] = value.strip()
+            arguments[key.strip()] = value.strip()
         
-        # get command
-        if (result["cmd"] == "Start"):
-            state = "Start"
-            imu.reset()
-            controller.set_target_angle(float(result["arg"]))
-            log_file = logger("time, angle, angular_vel, pressure_read_top, pressure_read_bot, pressure_needed_top, pressure_needed_bot, err, d_err, cumul_err\n")
-            start_time = time.ticks_ms()
-            print("Start")
-        elif (result["cmd"] == "Stop"):
+        if (arguments["cmd"] == "Start_Test"):
+            state = "Start_Test"
+            imu.reset() # reset the imu
+            controller.set_gains(float(arguments["Kp"]), float(arguments["Ki"]), float(arguments["Kd"])) # set the gains
+            controller.set_target_angle(float(arguments["angle"])) # set the target angle
+            log_file = logger("time [ms], angle [degrees], angular_vel [degress/s], pressure_top [psi], pressure_bot [psi]\n") # start the logger
+            start_time = time.ticks_ms() # start the timer
+            print("Start_Test")
+        elif (arguments["cmd"] == "Start_Sensor"):
+            state = "Start_Sensor"
+            imu.reset() # reset the imu
+            log_file = logger("time [ms], angle [degrees], angular_vel [degress/s], pressure_top [psi], pressure_bot [psi]\n") # start the logger
+            start_time = time.ticks_ms() # start the timer
+            print("Start_Sensor")
+        elif (arguments["cmd"] == "Start_Safety"):
+            state = "Start_Safety"
+            print("Start Safety")
+        elif (arguments["cmd"] == "Stop"):
             state = "Stop"
             log_file.close()
             print("Stop")
-        elif (result["cmd"] == "Download"):
+        elif (arguments["cmd"] == "Download"):
             state = "Download"
             print("Download")
             f = open("log_file.csv", 'r')
             log_data = f.read()
-            f.close()
             download_data = "cmd: Download; data: " + str(log_data)
             socket.sendall(download_data.encode())
+            f.close()
         
         with lock:
             g_state = state
     
         # if running test, run controller
-        if state == "Start":
+        if state == "Start_Test":
             
             # read sensor data
             pressure_read_top = transducer_top.read() # top pressure transducer [PSI]
@@ -178,7 +187,7 @@ while True:
             elapsed_time = time.ticks_diff(current_time, start_time)
             
             # write to log file
-            log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot, controller_pressure_top, controller_pressure_bot, controller.err, controller.d_err, controller.cumul_err)
+            log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot)
             
             # send data to interface
             update_data = "cmd: Update;"

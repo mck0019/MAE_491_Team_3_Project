@@ -105,18 +105,38 @@
         cursor: pointer;
     }
 
-    .target_angle_text_input {
+    .text_input {
         background-color: #2d2f36;
         border: none;
         border-radius: 0.5vh;
         text-align: center;
     }
 
-    .target_angle_text_input::-webkit-outer-spin-button,
-    .target_angle_text_input::-webkit-inner-spin-button {
+    .text_input::-webkit-outer-spin-button,
+    .text_input::-webkit-inner-spin-button {
         -webkit-appearance: none;
         appearance: none;
         margin: 0;
+    }
+
+    .controller_gains {
+        display: flex;
+        align-items: center;
+        justify-content:space-evenly;
+        margin-top: 1rem;
+        gap: 1rem;
+    }
+
+    .K_p::before {
+        content: "K_p: ";
+    }
+
+    .K_i::before {
+        content: "K_i: ";
+    }
+
+    .K_d::before {
+        content: "K_d: ";
     }
 
     /* sensor panel */
@@ -136,7 +156,7 @@
     }
 
     /* readings panel */
-    .readings {
+    .telemetry {
         grid-column: 1 /span 2;
         grid-row: 5 /span 3;
         padding: 1rem;
@@ -146,11 +166,11 @@
         grid-template-rows: 15% repeat(2, 1fr);
     }
 
-    .readings_title {
+    .telemetry_title {
         grid-column: 1 /span 2;
     }
 
-    .readings_value {
+    .telemetry_value {
         position: relative;
         font-size: 1.5rem;
         top: 15%;
@@ -163,9 +183,6 @@
         padding: 1rem;
         text-align: center;
     }
-
-    .led {}
-
 
     /* buttons */
 
@@ -220,46 +237,56 @@
                 </select>
             </div>
 
+            <!-- Controller Test Panel -->
             <div class="test_controller_panel" id="test_controller_panel">
 
                 <div class="target_angle_input">
                     <input class="target_angle_slider" id="target_angle_slider" type="range" value="0" min="-90"
                         max="90" oninput="update_target_angle(this.value)">
-                    <input class="target_angle_text_input" id="target_angle_text_input" type="number" value="0"
+                    <input class="text_input" id="target_angle_text_input" type="number" value="0"
                         min="-90" max="90" oninput="update_target_angle(this.value)">
                 </div>
-
+                <div class="controller_gains">
+                    <div class="K_p"> <input class="text_input" id="K_p_gain" type="number" value="1.1" step='0.001'
+                            min="0" max="50"></div>
+                    <div class="K_i"><input class="text_input" id="K_i_gain" type="number" value="0.065" step='0.001'
+                            min="0" max="50"></div>
+                    <div class="K_d"><input class="text_input" id="K_d_gain" type="number" value="2.5" step='0.001'
+                            min="0" max="50"></div>
+                </div>
             </div>
 
+            <!-- Sensor Test Panel -->
             <div class="test_sensor_panel" id="test_sensor_panel"></div>
 
+            <!-- Safety Test Panel -->
             <div class="test_safety_panel" id="test_safety_panel"></div>
 
 
         </div>
 
+        <!-- Telemetry Panel -->
+        <div class="panel telemetry">
+            <div class="telemetry_title">Telemetry</div>
 
-        <div class="panel readings">
-            <div class="readings_title">Telemetry</div>
-
-            <div class="readings_angle">
+            <div class="telemetry_angle">
                 <div>Angle:</div>
-                <div class="readings_value" id="readings_angle">-</div>
+                <div class="telemetry_value" id="telemetry_angle">-</div>
             </div>
 
-            <div class="readings_angular_velocity">
+            <div class="telemetry_angular_velocity">
                 <div>Angular Velocity:</div>
-                <div class="readings_value" id="readings_angular_vel">-</div>
+                <div class="telemetry_value" id="telemetry_angular_vel">-</div>
             </div>
 
-            <div class="readings_transducer_top">
+            <div class="telemetry_transducer_top">
                 <div>Pressure Top:</div>
-                <div class="readings_value" id="readings_pressure_top">-</div>
+                <div class="telemetry_value" id="telemetry_pressure_top">-</div>
             </div>
 
-            <div class="readings_transducer_bot">
+            <div class="telemetry_transducer_bot">
                 <div>Pressure Bottom:</div>
-                <div class="readings_value" id="readings_pressure_bot">-</div>
+                <div class="telemetry_value" id="telemetry_pressure_bot">-</div>
             </div>
 
 
@@ -290,28 +317,42 @@
         const target_angle_text_input = document.getElementById('target_angle_text_input');
         const target_angle_slider_input = document.getElementById('target_angle_slider');
 
-        const readings_angle = document.getElementById('readings_angle');
-        const readings_angular_vel = document.getElementById('readings_angular_vel');
-        const readings_pressure_top = document.getElementById('readings_pressure_top');
-        const readings_pressure_bot = document.getElementById('readings_pressure_bot');
-        
+        const telemetry_angle = document.getElementById('telemetry_angle');
+        const telemetry_angular_vel = document.getElementById('telemetry_angular_vel');
+        const telemetry_pressure_top = document.getElementById('telemetry_pressure_top');
+        const telemetry_pressure_bot = document.getElementById('telemetry_pressure_bot');
+
+        const K_p_gain = document.getElementById('K_p_gain');
+        const K_i_gain = document.getElementById('K_i_gain');
+        const K_d_gain = document.getElementById('K_d_gain');
+
         function send_msg(message) {
-            if (socket.readyState === socket.OPEN) { 
-                socket.send(message); 
+            if (socket.readyState === socket.OPEN) {
+                socket.send(message);
             }
         }
 
         function on_start_button() {
-            send_msg("cmd: Start; arg: " + String(target_angle_text_input.value));
+
+            if (test_selection.value === "controller_test") {
+                console.log("Preforming 'controller' test");
+                send_msg("cmd: Start_Test; angle: " + target_angle_text_input.value + "; " +
+                    "Kp: " + K_p_gain.value + "; " +
+                    "Ki: " + K_i_gain.value + "; " +
+                    "Kd: " + K_d_gain.value);
+            }
+            else if (test_selection.value === "pressure_test") {
+                console.log("Preforming 'sensor' test");
+                send_msg("cmd: Start_Sensor");
+            }
+            else if (test_selection.value === "safety_test") {
+                console.log("Preforming 'safety' test");
+                send_msg("cmd: Start_Safety");
+            }
         }
 
-        function on_stop_button() {
-            send_msg("cmd: Stop")
-        }
-
-        function on_download_button() {
-            send_msg("cmd: Download")
-        }
+        function on_stop_button() { send_msg("cmd: Stop") }
+        function on_download_button() { send_msg("cmd: Download") }
 
         socket.addEventListener('message', async event => {
 
@@ -326,12 +367,11 @@
 
             // handle message
             if (dict["cmd"] === "Update") {
-                readings_angle.innerHTML = parseFloat(dict["angle"]).toFixed(2);
-                readings_angular_vel.innerHTML = parseFloat(dict["velocity"]).toFixed(2);
-                readings_pressure_top.innerHTML = parseFloat(dict["pressure_top"]).toFixed(2);
-                readings_pressure_bot.innerHTML = parseFloat(dict["pressure_bot"]).toFixed(2);
+                telemetry_angle.innerHTML = parseFloat(dict["angle"]).toFixed(2);
+                telemetry_angular_vel.innerHTML = parseFloat(dict["velocity"]).toFixed(2);
+                telemetry_pressure_top.innerHTML = parseFloat(dict["pressure_top"]).toFixed(2);
+                telemetry_pressure_bot.innerHTML = parseFloat(dict["pressure_bot"]).toFixed(2);
             } else if (dict["cmd"] === "Download") {
-
                 // create download link for blob
                 const download_link = document.createElement('a');
                 download_link.setAttribute('href', URL.createObjectURL(new Blob([dict["data"]], { type: 'text/csv' })));
