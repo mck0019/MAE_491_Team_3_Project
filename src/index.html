@@ -28,14 +28,14 @@
         max-width: 100vh;
         height: 60vh;
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         grid-template-rows: 5% 10% 10% 10% 25%;
         grid-row-gap: 3vh;
         grid-column-gap: 2vh;
     }
 
     .title {
-        grid-column: 1 /span 4;
+        grid-column: 1 /span 5;
         grid-row: 1;
         font-size: 2rem;
         text-align: center;
@@ -49,7 +49,7 @@
 
     /* input panel */
     .input {
-        grid-column: 1 /span 3;
+        grid-column: 1 /span 4;
         grid-row: 2 /span 3;
         padding: 1rem;
     }
@@ -122,7 +122,7 @@
     .controller_gains {
         display: flex;
         align-items: center;
-        justify-content:space-evenly;
+        justify-content: space-evenly;
         margin-top: 1rem;
         gap: 1rem;
     }
@@ -155,34 +155,55 @@
         height: 80%;
     }
 
-    /* readings panel */
+    /* telemtry panel */
     .telemetry {
-        grid-column: 1 /span 2;
+        grid-column: 1 /span 3;
         grid-row: 5 /span 3;
         padding: 1rem;
         text-align: center;
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: 15% repeat(2, 1fr);
+        grid-template-rows: 15% 1fr;
     }
 
     .telemetry_title {
-        grid-column: 1 /span 2;
+        grid-column: 1;
     }
 
-    .telemetry_value {
-        position: relative;
-        font-size: 1.5rem;
-        top: 15%;
+    .telemetry_table {
+        width: 100%;
+        table-layout: auto;
+    }
+
+    td {
+        font-size: 1.0rem;
+    }
+
+    td.stretch {
+        max-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    td.fit {
+        width: 0;
+        min-width: fit-content;
     }
 
     /* status panel */
     .status {
-        grid-column: 3 /span 2;
+        grid-column: 4 /span 2;
         grid-row: 5 /span 3;
         padding: 1rem;
         text-align: center;
+        display: grid;
+        grid-template-rows: 15% 1fr;
     }
+
+    .status_table {
+        width: 100%;
+        table-layout: auto;
+    }
+
 
     /* buttons */
 
@@ -243,8 +264,8 @@
                 <div class="target_angle_input">
                     <input class="target_angle_slider" id="target_angle_slider" type="range" value="0" min="-90"
                         max="90" oninput="update_target_angle(this.value)">
-                    <input class="text_input" id="target_angle_text_input" type="number" value="0"
-                        min="-90" max="90" oninput="update_target_angle(this.value)">
+                    <input class="text_input" id="target_angle_text_input" type="number" value="0" min="-90" max="90"
+                        oninput="update_target_angle(this.value)">
                 </div>
                 <div class="controller_gains">
                     <div class="K_p"> <input class="text_input" id="K_p_gain" type="number" value="1.1" step='0.001'
@@ -269,33 +290,43 @@
         <div class="panel telemetry">
             <div class="telemetry_title">Telemetry</div>
 
-            <div class="telemetry_angle">
-                <div>Angle:</div>
-                <div class="telemetry_value" id="telemetry_angle">-</div>
-            </div>
-
-            <div class="telemetry_angular_velocity">
-                <div>Angular Velocity:</div>
-                <div class="telemetry_value" id="telemetry_angular_vel">-</div>
-            </div>
-
-            <div class="telemetry_transducer_top">
-                <div>Pressure Top:</div>
-                <div class="telemetry_value" id="telemetry_pressure_top">-</div>
-            </div>
-
-            <div class="telemetry_transducer_bot">
-                <div>Pressure Bottom:</div>
-                <div class="telemetry_value" id="telemetry_pressure_bot">-</div>
-            </div>
-
-
+            <table class="telemetry_table">
+                <tr>
+                    <td class="fit">Time:</td>
+                    <td class="stretch">-</td>
+                    <td class="fit">s</td>
+                    <td class="fit">Left Pressure:</td>
+                    <td class="stretch">-</td>
+                    <td class="fit">psi</td>
+                </tr>
+                <tr>
+                    <td class="fit">Angle:</td>
+                    <td class="stretch">-</td>
+                    <td class="fit">&#176;</td>
+                    <td class="fit">Right Pressure:</td>
+                    <td class="stretch">-</td>
+                    <td class="fit">psi</td>
+                </tr>
+                <tr>
+                    <td class="fit">Velocity:</td>
+                    <td class="stretch">-</td>
+                    <td class="fit">&#176;/s</td>
+                </tr>
+            </table>
         </div>
 
         <div class="panel status">
             <div class="status_title">Status</div>
-            <div class="led connection" id="status_connected"> </div>
-            <div class="led running" id="status_running"> </div>
+            <table class="status_table">
+                <tr>
+                    <td class="fit">Connected: </td>
+                    <td class="stretch">-</td>
+                </tr>
+                <tr>
+                    <td class="fit">Running: </td>
+                    <td class="stretch">-</td>
+                </tr>
+            </table>
         </div>
 
         <button class="panel button start" onclick="on_start_button()">Start</button>
@@ -367,6 +398,7 @@
 
             // handle message
             if (dict["cmd"] === "Update") {
+                // handle telemetry values
                 telemetry_angle.innerHTML = parseFloat(dict["angle"]).toFixed(2);
                 telemetry_angular_vel.innerHTML = parseFloat(dict["velocity"]).toFixed(2);
                 telemetry_pressure_top.innerHTML = parseFloat(dict["pressure_top"]).toFixed(2);
