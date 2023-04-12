@@ -1,5 +1,9 @@
 % MAE 491-01 Team 03 Requirement 1.1.2 Data MATLAB Parser
 
+% Goal: parse angle and time data from Requirement 1.1.2 to verify
+% whether the system is physically capable of rotating (by hand)
+% between the angles of +/-90° with a tolerance of +/-5°
+
 % housekeeping
 clear
 clc
