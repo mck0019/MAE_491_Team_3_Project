@@ -99,10 +99,14 @@ end
 hold on
 plot(time, angle); % plot angle vs. time
 % plot target values and tolerance bands
-plot(time,nomThreshArray,'-.k')
-plot(time,minThreshArray,'-.r')
-plot(time,-nomThreshArray,'-.k')
-plot(time,-minThreshArray,'-.r')
+if sign(angle(end)) == 1
+    plot(time,nomThreshArray,'-.k')
+    plot(time,minThreshArray,'-.r')
+else
+    plot(time,-nomThreshArray,'-.k')
+    plot(time,-minThreshArray,'-.r')
+end
+
 % add legend
 legend('Angle','Nominal Threshold', 'Minimum Threshold','Location'...
     ,'bestoutside')
