@@ -60,6 +60,7 @@ def motors_thread(lock):
     
     # global variables
     global g_state
+    global g_test
     global g_controller_pressure_top
     global g_controller_pressure_bot
     
@@ -67,20 +68,31 @@ def motors_thread(lock):
         
         with lock:
             state = g_state
+            test = g_test
             controller_pressure_top = g_controller_pressure_top
             controller_pressure_bot = g_controller_pressure_bot
             
         if (state == "End"):
             thread.exit()
         
-        if (state == "Start_Test"):
-            motor_top.set_target_pressure(controller_pressure_top)
-            motor_bot.set_target_pressure(controller_pressure_bot)
+        if (state == "Start"):
             
-            motor_top.update()
-            motor_bot.update()
-            
-            time.sleep_ms(7)
+            # if full controller
+            if (test not in {"1_1_2", "1_2_1", "1_2_2"}):
+                motor_top.set_target_pressure(controller_pressure_top)
+                motor_bot.set_target_pressure(controller_pressure_bot)
+                
+                motor_top.update()
+                motor_bot.update()
+                
+                time.sleep_ms(7)
+
+            # safety test
+            else if (test == "1_2_1"):
+                motor_top.set_target_step(8*200)
+                motor_top.update()
+                time.sleep_ms(7)
+
             
         elif (state == "Stop"):
             motor_top.set_target_step(0)
@@ -100,10 +112,12 @@ while True:
     
     # local variables
     state = "None"
+    test = "none"
+    start_time = 0
     controller_pressure_top = 0
     controller_pressure_bot = 0
-    start_time = 0
-    
+    record_pressure = False
+
     # start the motor_thread
     lock = thread.allocate_lock() # thread lock
     thread.start_new_thread(motors_thread, (lock,))
@@ -113,7 +127,7 @@ while True:
         
         # get data
         data = socket.receive()
-        if data==None: break;
+        if data==None: break
         
         # parse message
         message = str(data.decode())
@@ -123,30 +137,41 @@ while True:
             key, value = item.split(": ")
             arguments[key.strip()] = value.strip()
         
-        if (arguments["cmd"] == "Start_Test"):
-            state = "Start_Test"
+        # these are the test that require the controller
+        controller_test = {"1_1_3", "1_2_3", "1_3_1", "1_3_2", "1_3_3", "1_1_2_3", "1_3_3_1"}
+        controller_test_without_pressure = {"1_3_1", "1_3_2", "1_3_3", "1_1_2_3", "1_3_3_1"}
+
+        # determine which test we are running
+        if (arguments["cmd"] == "Start"):
+            state = "Start"
+            test = arguments["test"]
             imu.reset() # reset the imu
-            controller.set_gains(float(arguments["Kp"]), float(arguments["Ki"]), float(arguments["Kd"])) # set the gains
-            controller.set_target_angle(float(arguments["angle"])) # set the target angle
-            log_file = logger("time [ms], angle [degrees], angular_vel [degress/s], pressure_top [psi], pressure_bot [psi]\n") # start the logger
+
+            # test requires full controller
+            if (test in full_controller_test):
+
+                controller.set_gains(float(arguments["Kp"]), float(arguments["Ki"]), float(arguments["Kd"])) # set the gains
+                controller.set_target_angle(float(arguments["angle"])) # set the target angle
+
+                if (test in controller_test_wo_pressure):
+                    record_pressure = True
+                    log_file = logger("time [ms], angle [degrees], pressure_top [psi], pressure_bot [psi]\n") # start the logger
+                else:
+                    record_pressure = False
+                    log_file = logger("time [ms], angle [degrees]\n") # start the logger
+
+            # imu test
+            if test == "1_1_2":
+                log_file = logger("time [ms], angle [degrees]\n") # start the logger
+
             start_time = time.ticks_ms() # start the timer
-            print("Start_Test")
-        elif (arguments["cmd"] == "Start_Sensor"):
-            state = "Start_Sensor"
-            imu.reset() # reset the imu
-            log_file = logger("time [ms], pressure_top [psi], pressure_bot [psi]\n") # start the logger
-            start_time = time.ticks_ms() # start the timer
-            print("Start_Sensor")
-        elif (arguments["cmd"] == "Start_Safety"):
-            state = "Start_Safety"
-            print("Start Safety")
+
         elif (arguments["cmd"] == "Stop"):
             state = "Stop"
             log_file.close()
-            print("Stop")
+
         elif (arguments["cmd"] == "Download"):
             state = "Download"
-            print("Download")
             f = open("log_file.csv", 'r')
             log_data = f.read()
             download_data = "cmd: Download; data: " + str(log_data)
@@ -155,26 +180,23 @@ while True:
         
         with lock:
             g_state = state
+            g_test = test
     
         # if running test, run controller
-        if state == "Start_Test":
+        if state == "Start":
             
             # read sensor data
             pressure_read_top = transducer_top.read() # top pressure transducer [PSI]
             pressure_read_bot = transducer_bot.read() # bottom pressure transducer [PSI]
             angle = -imu.euler()[0] # IMU angle [degrees]
-            angular_vel = imu.gyroscope()[2] # IMU angular velocity [rad/s]
             
             # wrap the angle value to -180:180 range
             if angle < -180:
                 angle += 360
             
-            # convert to radians
-            theta = deg_to_rad(angle)
-            theta_dot = angular_vel
-            
             # controller calculation
-            controller_pressure_top, controller_pressure_bot = controller.update(theta)
+            if (test in controller_test):
+                controller_pressure_top, controller_pressure_bot = controller.update(deg_to_rad(angle))
             
             with lock:
                 g_controller_pressure_top = controller_pressure_top
@@ -185,40 +207,30 @@ while True:
             elapsed_time = time.ticks_diff(current_time, start_time)
             
             # write to log file
-            log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot)
-            
+
+            # if full controller
+            if (test in controller_test):
+                if (record_pressure):
+                    log_file.write(elapsed_time, angle, pressure_read_top, pressure_read_bot)
+                else:
+                    log_file.write(elapsed_time, angle)
+
+            # if imu test or safety test
+            if (test == {"1_1_2", "1_2_1"}):
+                log_file.write(elapsed_time, angle)
+
+            # if leak test
+            if (test == "1_2_2"):
+                # every 5 seconds
+                if (elapsed_time % 5000 < 50):
+                    log_file.write(elapsed_time, pressure_read_top, pressure_read_bot)
+
             # send data to interface
-            update_data = "cmd: Update;"
-            update_data += "angle: " + str(angle) + ";"
-            update_data += "velocity: " + str(rad_to_deg(angular_vel)) + ";"
-            update_data += "pressure_top: " + str(controller_pressure_top) + ";"
-            update_data += "pressure_bot: " + str(controller_pressure_bot) + ";"
-            socket.send(update_data.encode())
-    
-        if state == "Start_Sensor":
-            # read sensor data
-            pressure_read_top = transducer_top.read() # top pressure transducer [PSI]
-            pressure_read_bot = transducer_bot.read() # bottom pressure transducer [PSI]
-            angle = -imu.euler()[0] # IMU angle [degrees]
-            angular_vel = imu.gyroscope()[2] # IMU angular velocity [rad/s]
-            
-            # wrap the angle value to -180:180 range
-            if angle < -180:
-                angle += 360
-                
-            # calculate timestep
-            current_time = time.ticks_ms()
-            elapsed_time = time.ticks_diff(current_time, start_time)
-            
-            # write to log file
-            log_file.write(elapsed_time, angle, angular_vel, pressure_read_top, pressure_read_bot)    
-            
-            # send data to interface
-            update_data = "cmd: Update;"
-            update_data += "angle: " + str(angle) + ";"
-            update_data += "velocity: " + str(rad_to_deg(angular_vel)) + ";"
-            update_data += "pressure_top: " + str(controller_pressure_top) + ";"
-            update_data += "pressure_bot: " + str(controller_pressure_bot) + ";"
+            update_data = "cmd: Update; "
+            update_data += "time: " + str(elapsed_time/1000) + "; "
+            update_data += "angle: " + str(angle) + "; "
+            update_data += "pressure_top: " + str(controller_pressure_top) + "; "
+            update_data += "pressure_bot: " + str(controller_pressure_bot)
             socket.send(update_data.encode())
     
     # close the thread

@@ -26,10 +26,10 @@
     .container {
         width: 80vw;
         max-width: 100vh;
-        height: 60vh;
+        height: 80vh;
         display: grid;
         grid-template-columns: repeat(5, 1fr);
-        grid-template-rows: 5% 10% 10% 10% 25%;
+        grid-template-rows: 0.5fr 0.75fr 0.75fr 0.75fr 2fr;
         grid-row-gap: 3vh;
         grid-column-gap: 2vh;
     }
@@ -67,17 +67,15 @@
 
     /* test controller panel */
 
-    .test_controller_panel {
-        display: block;
-        margin-top: 1rem;
-        width: 100%;
-        height: 80%;
+    .test_description {
+        font-size: 1.0rem;
     }
 
     .target_angle_input {
         display: flex;
         align-items: center;
         gap: 1rem;
+        font-size: 1.0rem;
     }
 
     .target_angle_input::before {
@@ -110,6 +108,7 @@
         border: none;
         border-radius: 0.5vh;
         text-align: center;
+        font-size: 1.0rem;
     }
 
     .text_input::-webkit-outer-spin-button,
@@ -128,31 +127,18 @@
     }
 
     .K_p::before {
+        font-size: 1.0rem;
         content: "K_p: ";
     }
 
     .K_i::before {
+        font-size: 1.0rem;
         content: "K_i: ";
     }
 
     .K_d::before {
+        font-size: 1.0rem;
         content: "K_d: ";
-    }
-
-    /* sensor panel */
-
-    .test_sensor_panel {
-        display: none;
-        margin-top: 1rem;
-        width: 100%;
-        height: 80%;
-    }
-
-    .test_safety_panel {
-        display: none;
-        margin-top: 1rem;
-        width: 100%;
-        height: 80%;
     }
 
     /* telemtry panel */
@@ -176,6 +162,7 @@
 
     td {
         font-size: 1.0rem;
+        padding: 0.5rem;
     }
 
     td.stretch {
@@ -252,37 +239,41 @@
 
             <div class="test_selection">
                 <select class="test_selection_select" id="test_selection">
-                    <option value="controller_test">Controller</option>
-                    <option value="sensor_test">Sensor</option>
-                    <option value="safety_test">Safety</option>
+                    <option value="1_1_2">Req 1.1.2</option>
+                    <option value="1_1_3">Req 1.1.3</option>
+
+                    <option value="1_2_1">Req 1.2.1</option>
+                    <option value="1_2_2">Req 1.2.2</option>
+                    <option value="1_2_3">Req 1.2.3</option>
+
+                    <option value="1_3_1">Req 1.3.1</option>
+                    <option value="1_3_2">Req 1.3.2</option>
+                    <option value="1_3_3">Req 1.3.3</option>
+
+                    <option value="1_1_2_3">Req 1.1.2.3</option>
+                    <option value="1_3_3_1">Req 1.3.3.1</option>
+
                 </select>
             </div>
-
-            <!-- Controller Test Panel -->
-            <div class="test_controller_panel" id="test_controller_panel">
-
-                <div class="target_angle_input">
-                    <input class="target_angle_slider" id="target_angle_slider" type="range" value="0" min="-90"
-                        max="90" oninput="update_target_angle(this.value)">
-                    <input class="text_input" id="target_angle_text_input" type="number" value="0" min="-90" max="90"
-                        oninput="update_target_angle(this.value)">
-                </div>
-                <div class="controller_gains">
-                    <div class="K_p"> <input class="text_input" id="K_p_gain" type="number" value="1.1" step='0.001'
-                            min="0" max="50"></div>
-                    <div class="K_i"><input class="text_input" id="K_i_gain" type="number" value="0.065" step='0.001'
-                            min="0" max="50"></div>
-                    <div class="K_d"><input class="text_input" id="K_d_gain" type="number" value="2.5" step='0.001'
-                            min="0" max="50"></div>
-                </div>
+            <br>
+            <div class="test_description" id="test_description">
+                The system shall be physically capable of rotating 90 from vertical position.
             </div>
-
-            <!-- Sensor Test Panel -->
-            <div class="test_sensor_panel" id="test_sensor_panel"></div>
-
-            <!-- Safety Test Panel -->
-            <div class="test_safety_panel" id="test_safety_panel"></div>
-
+            <br>
+            <div class="target_angle_input" id="target_angle_input">
+                <input class="target_angle_slider" id="target_angle_slider" type="range" value="0" min="-90" max="90"
+                    oninput="update_target_angle(this.value)">
+                <input class="text_input" id="target_angle_text_input" type="number" value="0" min="-90" max="90"
+                    oninput="update_target_angle(this.value)">
+            </div>
+            <div class="controller_gains" id="controller_gains">
+                <div class="K_p"> <input class="text_input" id="K_p_gain" type="number" value="1.1" step='0.001' min="0"
+                        max="50"></div>
+                <div class="K_i"><input class="text_input" id="K_i_gain" type="number" value="0.065" step='0.001'
+                        min="0" max="50"></div>
+                <div class="K_d"><input class="text_input" id="K_d_gain" type="number" value="2.5" step='0.001' min="0"
+                        max="50"></div>
+            </div>
 
         </div>
 
@@ -293,24 +284,19 @@
             <table class="telemetry_table">
                 <tr>
                     <td class="fit">Time:</td>
-                    <td class="stretch">-</td>
+                    <td class="stretch" id="telemetry_time">-</td>
                     <td class="fit">s</td>
                     <td class="fit">Left Pressure:</td>
-                    <td class="stretch">-</td>
+                    <td class="stretch" id="telemetry_pressure_bot">-</td>
                     <td class="fit">psi</td>
                 </tr>
                 <tr>
                     <td class="fit">Angle:</td>
-                    <td class="stretch">-</td>
+                    <td class="stretch" id="telemetry_angle">-</td>
                     <td class="fit">&#176;</td>
                     <td class="fit">Right Pressure:</td>
-                    <td class="stretch">-</td>
+                    <td class="stretch" id="telemetry_pressure_top">-</td>
                     <td class="fit">psi</td>
-                </tr>
-                <tr>
-                    <td class="fit">Velocity:</td>
-                    <td class="stretch">-</td>
-                    <td class="fit">&#176;/s</td>
                 </tr>
             </table>
         </div>
@@ -320,11 +306,11 @@
             <table class="status_table">
                 <tr>
                     <td class="fit">Connected: </td>
-                    <td class="stretch">-</td>
+                    <td class="stretch" id="status_connected">False</td>
                 </tr>
                 <tr>
                     <td class="fit">Running: </td>
-                    <td class="stretch">-</td>
+                    <td class="stretch" id="status_running">False</td>
                 </tr>
             </table>
         </div>
@@ -339,23 +325,28 @@
 
         // elements 
         var socket = new WebSocket('ws://192.168.4.1:80/ws');
+
         const test_selection = document.getElementById('test_selection');
+        const test_description = document.getElementById('test_description');
 
-        const test_controller_panel = document.getElementById('test_controller_panel');
-        const test_sensor_panel = document.getElementById('test_sensor_panel');
-        const test_safety_panel = document.getElementById('test_safety_panel');
-
+        const target_angle_input = document.getElementById('target_angle_input');
         const target_angle_text_input = document.getElementById('target_angle_text_input');
         const target_angle_slider_input = document.getElementById('target_angle_slider');
 
+
+        const telemetry_time = document.getElementById('telemetery_time');
         const telemetry_angle = document.getElementById('telemetry_angle');
         const telemetry_angular_vel = document.getElementById('telemetry_angular_vel');
         const telemetry_pressure_top = document.getElementById('telemetry_pressure_top');
         const telemetry_pressure_bot = document.getElementById('telemetry_pressure_bot');
 
+        const controller_gains = document.getElementById('controller_gains');
         const K_p_gain = document.getElementById('K_p_gain');
         const K_i_gain = document.getElementById('K_i_gain');
         const K_d_gain = document.getElementById('K_d_gain');
+
+        const status_connected = document.getElementById('status_connected');
+        const status_running = document.getElementById('status_running');
 
         function send_msg(message) {
             if (socket.readyState === socket.OPEN) {
@@ -365,24 +356,26 @@
 
         function on_start_button() {
 
-            if (test_selection.value === "controller_test") {
-                console.log("Preforming 'controller' test");
-                send_msg("cmd: Start_Test; angle: " + target_angle_text_input.value + "; " +
+            var message = "cmd: Start; test: " + test_selection.value;
+
+            const full_controller_test = ["1_2_3", "1_3_1", "1_3_2", "1_3_3", "1_1_2_3", "1_3_3_1"];
+            if (full_controller_test.includes(test_selection.value)) {
+                message += "; angle: " + target_angle_text_input.value + "; " +
                     "Kp: " + K_p_gain.value + "; " +
                     "Ki: " + K_i_gain.value + "; " +
-                    "Kd: " + K_d_gain.value);
+                    "Kd: " + K_d_gain.value;
             }
-            else if (test_selection.value === "sensor_test") {
-                console.log("Preforming 'sensor' test");
-                send_msg("cmd: Start_Sensor");
-            }
-            else if (test_selection.value === "safety_test") {
-                console.log("Preforming 'safety' test");
-                send_msg("cmd: Start_Safety");
-            }
+
+            send_msg(message);
+            status_running.innerHTML = "True";
         }
 
-        function on_stop_button() { send_msg("cmd: Stop") }
+
+        function on_stop_button() {
+            send_msg("cmd: Stop");
+            status_running.innerHTML = "False";
+        }
+
         function on_download_button() { send_msg("cmd: Download") }
 
         socket.addEventListener('message', async event => {
@@ -399,6 +392,7 @@
             // handle message
             if (dict["cmd"] === "Update") {
                 // handle telemetry values
+                telemetry_time.innerHTML = parseFloat(dict["time"].toFixed(2));
                 telemetry_angle.innerHTML = parseFloat(dict["angle"]).toFixed(2);
                 telemetry_angular_vel.innerHTML = parseFloat(dict["velocity"]).toFixed(2);
                 telemetry_pressure_top.innerHTML = parseFloat(dict["pressure_top"]).toFixed(2);
@@ -407,10 +401,24 @@
                 // create download link for blob
                 const download_link = document.createElement('a');
                 download_link.setAttribute('href', URL.createObjectURL(new Blob([dict["data"]], { type: 'text/csv' })));
-                download_link.setAttribute('download', 'data.csv');
+                file_name = "Req_" + test_selection.value + "_";
+                if (test_selection.value === "1_3_2") {
+                    file_name += "angle_" +  target_angle_text_input.value + "_";
+                } 
+                file_name += "data.csv";
+                download_link.setAttribute('download', file_name);
                 document.body.appendChild(download_link);
                 download_link.click();
             }
+        });
+
+        socket.addEventListener("open", (event) => {
+            status_connected.innerHTML = "True";
+        });
+
+        socket.addEventListener("close", (event) => {
+            status_connected.innerHTML = "False";
+            status_running.innerHTML = "False";
         });
 
         // update every 100 ms
@@ -418,17 +426,36 @@
             send_msg("cmd: Update;");
         }, 100);
 
-        // input panels
-        const panels = {
-            controller_test: test_controller_panel,
-            sensor_test: test_sensor_panel,
-            safety_test: test_safety_panel
+        const test_description_dict = {
+            "1_1_2": "The system shall be physically capable of rotating &plusmn;90&#176; from vertical position.",
+            "1_1_3": "The pressures measured upstream of an active nozzle shall be above 20&plusmn;4 psig once the system has settled at its target angle.",
+            "1_2_1": "The system shall have a mechanical rotation stop, preventing motion greater than &plusmn;180&#176; from vertical.",
+            "1_2_2": "The system shall not leak substantial amounts of propellant out of any fittings or tubing that are upstream of the regulators.",
+            "1_2_3": "The system shall have a shut-off valve between the system's input airline and the shop drop line.",
+            "1_3_1": "The system shall have a settling time of less than 2.5&plusmn;0.5 seconds for a 45&#176; step input.",
+            "1_3_2": "The system's steady state error shall be less than 5&#176;, as measured by the IMU, in response to step inputs of 30&plusmn;5&#176;, 45&plusmn;5&#176;, and 60&plusmn;5&#176;.",
+            "1_3_3": "The system shall be capable of holding the target angle continuously for at least 10 seconds after reaching steady state.",
+            "1_1_2_3": "The system shall be able to rotate and satisfy the performance requirements between the angles of &plusmn;90&#176; from vertical.",
+            "1_3_3_1": "The system's fluid consumption rate shall be low enough that multiple tests can be performed in succession."
+        };
+
+        const test_control_dict = {
+            "1_1_2": "hidden",
+            "1_1_3": "visible",
+            "1_2_1": "hidden",
+            "1_2_2": "hidden",
+            "1_2_3": "visible",
+            "1_3_1": "visible",
+            "1_3_2": "visible",
+            "1_3_3": "visible",
+            "1_1_2_3": "visible",
+            "1_3_3_1": "visible",
         };
 
         test_selection.addEventListener('change', () => {
-            Object.entries(panels).forEach(([key, panel]) => {
-                panel.style.display = key === test_selection.value ? 'block' : 'none';
-            });
+            test_description.innerHTML = test_description_dict[test_selection.value];
+            target_angle_input.style.visibility = test_control_dict[test_selection.value];
+            controller_gains.style.visibility = test_control_dict[test_selection.value];
         });
 
         function update_target_angle(val) {
