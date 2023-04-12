@@ -14,16 +14,15 @@ format compact
 filename = "data_1.csv"; % file name is set here for convenience
 
 % threshold variables for settling
-nominalThresh = 45; % 45 degrees
+nominalThresh = 45; % SET TARGET HERE
 threshBand = 5; % +/- 5 degrees for tolerance
 minThresh = nominalThresh-threshBand; % minimum value
 maxThresh = nominalThresh+threshBand; % maximum value
 
 % settling time requirement
-nominalSettle = 2.5;
-threshSettle = 0.5;
-maxSettle = nominalSettle + threshSettle;
-
+nominalSettled = 10;
+settledBand = 2;
+timeThresh = nominalSettled-settledBand;
 
 % open csv data
 log_data = readtable(filename,"VariableNamingRule","preserve");
@@ -59,18 +58,26 @@ for i = length(angle):-1:1
     end
 end
 
+errorArray = nominalThresh - angle;
+
 riseIndex = find(angle >= 2,1);
 timeStart = time(riseIndex);
 settleIndex = find(logicalArrayBack == 1,1);
 timeEnd = time(settleIndex);
 settlingTime = timeEnd-timeStart;
 
-if settlingTime < maxSettle
-    fprintf('The settling time was measured as %.2f seconds\n',settlingTime)
-    fprintf('This is less than the requirement, so the test is passed.\n')
+
+finalTime = time(end);
+settledTime = finalTime-timeEnd;
+
+if settledTime > timeThresh & ~isnan(settlingTime)
+    fprintf('The system remained settled for %.2f seconds\n',settledTime)
+    fprintf('This is greater than the requirement, so the test is passed.\n')
+elseif ~isnan(settlingTime)
+    fprintf('The system remained settled for %.2f seconds\n',settledTime)
+    fprintf('This is less than the requirement, so the test is failed.\n')
 else
-    fprintf('The settling time was measured as %.2f seconds\n',settlingTime)
-    fprintf('This is greater than the requirement, so the test is failed.\n')
+    fprintf('The system did not settle to the target angle.\n')
 end
 
 
