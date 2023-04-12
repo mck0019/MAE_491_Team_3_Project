@@ -66,7 +66,7 @@ plot(time,-nomThreshArray,'-.r')
 legend('Angle','Nominal Threshold', 'Maximum Threshold','Location'...
     ,'bestoutside')
 % title plot
-title('Angle vs. Time for Requirement 1.1.3')
+title('Angle vs. Time for Requirement 1.2.1')
 % label axes
 xlabel('Time [s]')
 ylabel('Angle [°]')
