@@ -1,5 +1,5 @@
 # main.py
-# Last Updated: April 10th, 2023
+# Last Updated: April 11th, 2023
 # Author: Michael Key
 
 # This program implements a PID controller for our MAE 491 
@@ -134,7 +134,7 @@ while True:
         elif (arguments["cmd"] == "Start_Sensor"):
             state = "Start_Sensor"
             imu.reset() # reset the imu
-            log_file = logger("time [ms], angle [degrees], angular_vel [degress/s], pressure_top [psi], pressure_bot [psi]\n") # start the logger
+            log_file = logger("time [ms], pressure_top [psi], pressure_bot [psi]\n") # start the logger
             start_time = time.ticks_ms() # start the timer
             print("Start_Sensor")
         elif (arguments["cmd"] == "Start_Safety"):
