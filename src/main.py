@@ -1,5 +1,5 @@
 # main.py
-# Last Updated: April 11th, 2023
+# Last Updated: April 13th, 2023
 # Author: Michael Key
 
 # This program implements a PID controller for our MAE 491 
@@ -50,7 +50,6 @@ def motors_thread(lock):
     global g_test
     global g_controller_pressure_top
     global g_controller_pressure_bot
-    
     
     count = 0
     while True:
@@ -136,7 +135,7 @@ while True:
         
         # these are the test that require the controller
         controller_test = {"1_1_3", "1_2_3", "1_3_1", "1_3_2", "1_3_3", "1_1_2_3", "1_3_3_1"}
-        controller_test_without_pressure = {"1_3_1", "1_3_2", "1_3_3", "1_1_2_3", "1_3_3_1"}
+        controller_test_without_pressure = {"1_1_2_3", "1_3_3_1"}
 
         # determine which test we are running
         if (arguments["cmd"] == "Start"):
@@ -144,19 +143,18 @@ while True:
             state = "Start"
             test = arguments["test"]
             imu.reset() # reset the imu
-
+            
             # test requires full controller
             if (test in controller_test):
-
                 controller.set_gains(float(arguments["Kp"]), float(arguments["Ki"]), float(arguments["Kd"])) # set the gains
                 controller.set_target_angle(float(arguments["angle"])) # set the target angle
 
                 if (test in controller_test_without_pressure):
-                    record_pressure = True
-                    log_file = logger("time [ms], angle [degrees], pressure_top [psig], pressure_bot [psig]\n") # start the logger
-                else:
                     record_pressure = False
                     log_file = logger("time [ms], angle [degrees]\n") # start the logger
+                else:
+                    record_pressure = True
+                    log_file = logger("time [ms], angle [degrees], pressure_top [psig], pressure_bot [psig]\n") # start the logger
 
             # imu test or safety test
             if (test in {"1_1_2", "1_2_1"}):
