@@ -172,7 +172,7 @@ class stepper_motor():
             
     # set the target step
     def set_target_pressure(self, psi):
-        target_value = round(((psi+41.531) / 0.0571))
+        target_value = round(((psi + 41.531) / 0.0571))
         if (target_value > MOTOR_MAX_REV * 200):
             self.target_step = target_value
         self.target_step = round(((psi+41.531) / 0.0571)) # convert to step
