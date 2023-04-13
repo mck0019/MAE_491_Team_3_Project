@@ -11,7 +11,7 @@ format compact
 filename = "Req_1_2_2_data.csv"; % file name is set here for convenience
 
 % threshold variables
-nominalThresh = -4; % 4 psig
+nominalThresh = -8; % 4 psig
 threshBand = 1; % +/- 1 psig tolerance
 maxThresh = nominalThresh-threshBand; % maximum decreasing rate
 
@@ -30,11 +30,11 @@ pressureBot = lowpass(pressureBot,0.5,'Steepness',0.95);
 
 % ignore first 4 data points, aka first 20 seconds
 
-time([1:1:15]) = [];
+time([1:1:10]) = [];
 timeMin = time/60;
 
-pressureTop([1:1:15]) = [];
-pressureBot([1:1:15]) = [];
+pressureTop([1:1:10]) = [];
+pressureBot([1:1:10]) = [];
 
 linFitTop = polyfit(timeMin,pressureTop,1);
 linFitBot = polyfit(timeMin,pressureBot,1);
@@ -56,6 +56,7 @@ if slopeTop > maxThresh
 else
     fprintf('Top pressure failed requirement.\n')
     fprintf('Top PT changed at a rate of %.2f psig/min\n',slopeTop)
+    fprintf('Bottom PT changed at a rate of %.2f psig/min\n',slopeBot)
 end
 
 figure

@@ -11,7 +11,7 @@ clc
 close all
 format compact 
 
-filename = "data_1.csv"; % file name is set here for convenience
+filename = "Req_1_3_1_data.csv"; % file name is set here for convenience
 
 % threshold variables for settling
 nominalThresh = 45; % 45 degrees

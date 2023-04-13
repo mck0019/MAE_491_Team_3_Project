@@ -1,6 +1,6 @@
 % MAE 491-01 Team 03 Requirement 1.1.2 Data MATLAB Parser
 
-% Goal:
+% Goal: rotation stop
 
 % housekeeping
 clear
@@ -8,7 +8,7 @@ clc
 close all
 format compact 
 
-filename = "data_1.csv"; % file name is set here for convenience
+filename = "Req_1_2_1_data.csv"; % file name is set here for convenience
 
 % threshold variables
 nominalThresh = 180; % 90 degrees

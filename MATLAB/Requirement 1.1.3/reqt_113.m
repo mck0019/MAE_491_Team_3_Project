@@ -11,9 +11,10 @@
 % housekeeping
 clear
 clc
+close all
 format compact 
 
-filename = "data_1.csv"; % file name is set here for convenience
+filename = "Req_1_1_3_data.csv"; % file name is set here for convenience
 
 
 % threshold variables for settling
@@ -35,11 +36,11 @@ time = table2array(log_data(:, 1)); % get first column from table
 time = time/1000; % convert from source data in ms to seconds
 angle = table2array(log_data(:, 2)); % get second column from table
 % get pressures
-pressureTop = table2array(log_data(:,4));
-pressureBot = table2array(log_data(:,5));
+pressureTop = table2array(log_data(:,3));
+pressureBot = table2array(log_data(:,4));
 
-pressureTop = lowpass(pressureTop,0.5,'Steepness',0.95);
-pressureBot = lowpass(pressureBot,0.5,'Steepness',0.95);
+% pressureTop = lowpass(pressureTop,0.5,'Steepness',0.95);
+% pressureBot = lowpass(pressureBot,0.5,'Steepness',0.95);
 
 
 % arrays for plotting threshold bands
