@@ -39,8 +39,8 @@ angle = table2array(log_data(:, 2)); % get second column from table
 pressureTop = table2array(log_data(:,3));
 pressureBot = table2array(log_data(:,4));
 
-% pressureTop = lowpass(pressureTop,0.5,'Steepness',0.95);
-% pressureBot = lowpass(pressureBot,0.5,'Steepness',0.95);
+pressureTop = lowpass(pressureTop,0.35,'Steepness',0.95);
+pressureBot = lowpass(pressureBot,0.35,'Steepness',0.95);
 
 
 % arrays for plotting threshold bands
@@ -73,9 +73,21 @@ for i = length(angle):-1:1
     end
 end
 
+settleIndex = find(logicalArray == 1,1);
+timeEnd = time(settleIndex);
+
+timeStartTrack = timeEnd + 3;
+startIndex = find(time >= timeStartTrack,1);
+
+logicalArray(1:1:startIndex) = 0;
+
 % find settled pressures
 steadyPressureTop = pressureTop(logicalArray);
 steadyPressureBot = pressureBot(logicalArray);
+
+
+
+
 
 % determine dominant nozzle and analyze to make sure always in excess
 if sign(angle(end)) == 1
@@ -129,8 +141,10 @@ figure
 hold on
 if sign(angle(end)) == 1
     plot(time(logicalArray),steadyPressureBot)
+    ylim([0 max(steadyPressureBot)])
 else
     plot(time(logicalArray),steadyPressureTop)
+    ylim([0 max(steadyPressureTop)])
 end
 plot(time(logicalArray),nomPressureArray(logicalArray),'-.k')
 plot(time(logicalArray),minPressureArray(logicalArray),'-.r')
@@ -140,6 +154,8 @@ title('Pressure vs. Time at Steady State for Requirement 1.1.3')
 % label axes
 xlabel('Time [s]')
 ylabel('Pressure [psig]')
+
+
 
 
 
