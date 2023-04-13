@@ -268,6 +268,9 @@ settleIndex = find(logicalArrayBack == 1,1);
 timeEnd = time(settleIndex);
 settlingTime = timeEnd-timeStart;
 
+finalTime = time(end);
+settledTime = finalTime-timeEnd;
+
 fprintf('60° Test:\n')
 
 if abs(errorArray(logicalArrayBack)) < threshBand & ~isnan(settlingTime)
