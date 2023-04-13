@@ -11,10 +11,10 @@
 % housekeeping
 clear
 clc
-close all
 format compact 
 
 filename = "data_1.csv"; % file name is set here for convenience
+
 
 % threshold variables for settling
 nominalThresh = 45; % 45 degrees
@@ -37,6 +37,9 @@ angle = table2array(log_data(:, 2)); % get second column from table
 % get pressures
 pressureTop = table2array(log_data(:,4));
 pressureBot = table2array(log_data(:,5));
+
+pressureTop = lowpass(pressureTop,0.5,'Steepness',0.95);
+pressureBot = lowpass(pressureBot,0.5,'Steepness',0.95);
 
 
 % arrays for plotting threshold bands
@@ -96,15 +99,18 @@ end
 
 
 % plot
+figure
 hold on
 plot(time, angle); % plot angle vs. time
 % plot target values and tolerance bands
 if sign(angle(end)) == 1
     plot(time,nomThreshArray,'-.k')
     plot(time,minThreshArray,'-.r')
+    plot(time,maxThreshArray,'-.r')
 else
     plot(time,-nomThreshArray,'-.k')
     plot(time,-minThreshArray,'-.r')
+    plot(time,-maxThreshArray,'-.r')
 end
 
 % add legend
