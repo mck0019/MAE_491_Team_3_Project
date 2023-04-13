@@ -3,7 +3,7 @@ clc
 close all
 
 
-array = table2array(cell2table(inputdlg({'Enter Y Coordinate:','Enter Z Coordinate'},'Input Coordinates')));
+array = cellfun(@str2num,inputdlg({'Enter Y Coordinate:','Enter Z Coordinate'},'Input Coordinates'));
 
 y = array(1);
 z = array(2);
