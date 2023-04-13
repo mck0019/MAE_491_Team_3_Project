@@ -21,22 +21,8 @@ from machine import Pin, ADC
 import _thread as thread
 import utime as time
 
-# calculate K_matrix
-I = 0.044 # moment of inertia [kg*m^2]
-K = 0.12; # spring constant, [N*m/rad]
-C = 0.2; # rotational damping friction [N*m*s/rad]
-df = 0.180975 # moment arm [m]
-
-# control matrices
-A = matrix([[0, 1], [-K/I, 0]]) # (2x2)
-B = matrix([[0], [1/I]]) # (2x1)
-Q = matrix([[1.75, 0],[0, 1.08]]) # (2x2)
-R = matrix([1.5]) # (1x1)
-
-K_matrix = lqr(A,B,Q,R)
-
 # set up controller
-controller = pid_controller(1.1, 0.065, 2.5) # PID controller
+controller = pid_controller(1.1, 0.2, 12.0) # PID controller
 
 # set up sensors
 imu = imu(scl_pin=Pin(1, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
@@ -48,6 +34,7 @@ network = start_network("MAE 491 Project Interface", "123456789")
 
 # global variables - these are variables that are shared across threads
 g_state = "None" # defines the current state of the system (ex: "Start", "Stop", etc.)
+g_test = "None"
 g_controller_pressure_top = 0 # the pressure output from the controller for the top nozzle. 
 g_controller_pressure_bot = 0 # the pressure output from the controller for the bottom nozzle. 
 
@@ -64,6 +51,8 @@ def motors_thread(lock):
     global g_controller_pressure_top
     global g_controller_pressure_bot
     
+    
+    count = 0
     while True:
         
         with lock:
@@ -86,10 +75,18 @@ def motors_thread(lock):
                 motor_bot.update()
                 
                 time.sleep_ms(7)
-
+                
+            # if leak test
+            elif (test == "1_2_2"):
+                motor_top.set_target_step(MOTOR_MAX_REV * 200)
+                motor_bot.set_target_step(MOTOR_MAX_REV * 200)
+                motor_top.update()
+                motor_bot.update()
+                time.sleep_ms(7)
+            
             # safety test
-            else if (test == "1_2_1"):
-                motor_top.set_target_step(8*200)
+            elif (test == "1_2_1"):
+                motor_top.set_target_pressure(53)
                 motor_top.update()
                 time.sleep_ms(7)
 
@@ -143,34 +140,41 @@ while True:
 
         # determine which test we are running
         if (arguments["cmd"] == "Start"):
+            print("Start")
             state = "Start"
             test = arguments["test"]
             imu.reset() # reset the imu
 
             # test requires full controller
-            if (test in full_controller_test):
+            if (test in controller_test):
 
                 controller.set_gains(float(arguments["Kp"]), float(arguments["Ki"]), float(arguments["Kd"])) # set the gains
                 controller.set_target_angle(float(arguments["angle"])) # set the target angle
 
-                if (test in controller_test_wo_pressure):
+                if (test in controller_test_without_pressure):
                     record_pressure = True
-                    log_file = logger("time [ms], angle [degrees], pressure_top [psi], pressure_bot [psi]\n") # start the logger
+                    log_file = logger("time [ms], angle [degrees], pressure_top [psig], pressure_bot [psig]\n") # start the logger
                 else:
                     record_pressure = False
                     log_file = logger("time [ms], angle [degrees]\n") # start the logger
 
-            # imu test
-            if test == "1_1_2":
+            # imu test or safety test
+            if (test in {"1_1_2", "1_2_1"}):
                 log_file = logger("time [ms], angle [degrees]\n") # start the logger
+                
+            # if leak test
+            if (test == "1_2_2"):
+                log_file = logger("time [ms], pressure_top [psig], pressure_bot [psig]\n") # start the logger
 
             start_time = time.ticks_ms() # start the timer
 
         elif (arguments["cmd"] == "Stop"):
+            print("Stop")
             state = "Stop"
             log_file.close()
 
         elif (arguments["cmd"] == "Download"):
+            print("Download")
             state = "Download"
             f = open("log_file.csv", 'r')
             log_data = f.read()
@@ -216,21 +220,22 @@ while True:
                     log_file.write(elapsed_time, angle)
 
             # if imu test or safety test
-            if (test == {"1_1_2", "1_2_1"}):
+            if (test in {"1_1_2", "1_2_1"}):
                 log_file.write(elapsed_time, angle)
 
             # if leak test
             if (test == "1_2_2"):
                 # every 5 seconds
-                if (elapsed_time % 5000 < 50):
+                if (elapsed_time > 100 and elapsed_time % 2000 < 100):
                     log_file.write(elapsed_time, pressure_read_top, pressure_read_bot)
 
+            
             # send data to interface
             update_data = "cmd: Update; "
             update_data += "time: " + str(elapsed_time/1000) + "; "
             update_data += "angle: " + str(angle) + "; "
-            update_data += "pressure_top: " + str(controller_pressure_top) + "; "
-            update_data += "pressure_bot: " + str(controller_pressure_bot)
+            update_data += "pressure_top: " + str(pressure_read_top) + "; "
+            update_data += "pressure_bot: " + str(pressure_read_bot) + "; "
             socket.send(update_data.encode())
     
     # close the thread

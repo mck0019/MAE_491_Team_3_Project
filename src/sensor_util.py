@@ -202,4 +202,4 @@ class transducer():
         self.pin = pin
         
     def read(self):
-        return (0.00287737 * self.pin.read_u16() - 17.65142857) # convert to psi
+        return (0.0051 * self.pin.read_u16()) - 16.47
