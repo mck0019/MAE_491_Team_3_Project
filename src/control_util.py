@@ -1,5 +1,5 @@
 # control_util.py
-# Last Updated: April 11th, 2023
+# Last Updated: April 10th, 2023
 # Authors: Michael Key, Ian Holbrook, John Thorne
 
 # imports
@@ -387,7 +387,7 @@ class pid_controller:
             self.cumul_err += self.err * CONTROLLER_TIME_STEP # rectangular approximation of integral error for this update
             self.d_err = (self.err - self.last_err) / CONTROLLER_TIME_STEP # first order finite difference approximation of derivative error
         
-        if (self.err > 0 and self.last_err < 0) or (self.err < 0 and self.last_err > 0) or (abs(self.err) < deg_to_rad(2)) or (self.d_err > 0.4):
+        if (self.err > 0 and self.last_err < 0) or (self.err < 0 and self.last_err > 0) or (abs(self.err) < deg_to_rad(4)) or (self.d_err > 0.4):
             self.cumul_err = 0
         
         control_torque = (self.K_p * self.err) + (self.K_i * self.cumul_err) + (self.K_d * self.d_err) # compute control signal

@@ -1,5 +1,5 @@
 # main.py
-# Last Updated: April 13th, 2023
+# Last Updated: April 11th, 2023
 # Author: Michael Key
 
 # This program implements a PID controller for our MAE 491 
@@ -22,7 +22,7 @@ import _thread as thread
 import utime as time
 
 # set up controller
-controller = pid_controller(1.1, 0.2, 12.0) # PID controller
+controller = pid_controller(1.1, 0.2, 15.5) # PID controller
 
 # set up sensors
 imu = imu(scl_pin=Pin(1, mode=Pin.OUT), sda_pin=Pin(0, mode=Pin.OUT), freq=400000) # set up the imu
@@ -50,6 +50,7 @@ def motors_thread(lock):
     global g_test
     global g_controller_pressure_top
     global g_controller_pressure_bot
+    
     
     count = 0
     while True:
